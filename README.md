@@ -1,4 +1,4 @@
-# vcoin
+# tcoin
 a digital coin use NodeJS
 ## Install
   * Install NodeJS. [Download](https://nodejs.org)
