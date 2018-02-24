@@ -232,7 +232,7 @@ const initP2P = function(){
   //default connect to this peer
   connect2Peers(["http://27.74.255.132:3001"]);
   //connect2Peers(["http://localhost:4001"]);
-  connect2Peers(["http://120.72.99.75:5001"]);
+  //connect2Peers(["http://120.72.99.75:5001"]);
 }
 const connect2Peers = function(peers){
   peers.forEach((peer)=>{

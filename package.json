@@ -2,7 +2,7 @@
 	"name": "tcoin",
 	"main": "app.js",
 	"description": "Digital coin",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"author": {
 		"name": "Van Truong Pham",
 		"email": "invncur@gmail.com"
