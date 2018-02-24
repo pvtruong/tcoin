@@ -1,0 +1,16 @@
+{
+	"name": "vcoin-client",
+    "version": "1.0.0",
+    "dependencies": {
+	    "bootstrap": "latest",
+			"font-awesome": "latest",
+			"underscore":"latest",
+			"async":"latest",
+			"angular": "latest",
+			"angular-cookies":"latest",
+			"angular-animate":"latest",
+			"angular-sanitize":"latest",
+			"angular-touch":"latest",
+			"angular-ui-router":"latest"
+    }
+}

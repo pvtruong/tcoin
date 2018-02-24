@@ -1,0 +1,25 @@
+{
+	"name": "tcoin",
+	"main": "app.js",
+	"description": "Digital coin",
+	"version": "1.0.1",
+	"author": {
+		"name": "Van Truong Pham",
+		"email": "invncur@gmail.com"
+	},
+	"keywords": [
+		"blockchain",
+		"coin"
+	],
+	"dependencies": {
+		"async": "latest",
+		"body-parser": "latest",
+		"express": "latest",
+		"numeral": "latest",
+		"request": "latest",
+		"underscore": "latest",
+		"crypto-js": "^3.1.0",
+		"ws": "^4.0.0",
+		"elliptic": "latest"
+	}
+}

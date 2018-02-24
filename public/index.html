@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>V-COIN</title>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <meta content="Phạm Văn Trường" name="author"/>
+  <meta content="#34AADC" name="theme-color"/>
+
+
+  <link href="bower_components/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" type="text/css"/>
+</head>
+<body ng-app="APP" style="padding:10px">
+  <ul class="nav nav-tabs">
+      <li class="nav-item">
+        <a ui-sref="wallet" ui-sref-active="active" class="nav-link">Wallet</a>
+      </li>
+      <li class="nav-item">
+        <a ui-sref="mineBlock" ui-sref-active="active" class="nav-link">Blockchain</a>
+      </li>
+  </ul>
+  <div ui-view style="padding-top:20px">
+
+  </div>
+  <script src="bower_components/angular/angular.min.js"></script>
+  <script src="bower_components/angular-ui-router/release/angular-ui-router.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

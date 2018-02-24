@@ -1,0 +1,26 @@
+<table class="table table-striped">
+  <tr ng-repeat="trans in $ctrl.transactionPool">
+      <td>
+        <div><b>Transaction ID:</b> {{trans.id}}</div>
+        <div>
+          <b>TxIns:</b>
+            <ul>
+              <li ng-repeat="txIn in trans.txIns">
+                  <div><b>TxOut Id:</b> {{txIn.txOutId}}</div>
+                  <div><b>TxOut Index:</b> {{txIn.txOutIndex}}</div>
+                  <div><b>Signature:</b> {{txIn.signature}}</div>
+              </li>
+            </ul>
+        </div>
+        <div>
+          <b>TxOuts:</b>
+            <ul>
+              <li ng-repeat="txOut in trans.txOuts">
+                  <div><b>Address:</b> {{txOut.address}}</div>
+                  <div><b>Amount:</b> {{txOut.amount}}</div>
+              </li>
+            </ul>
+        </div>
+      </td>
+  </tr>
+</table>

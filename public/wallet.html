@@ -1,0 +1,55 @@
+<div>
+  <h3>My Wallet</h3>
+  <div class="form-group">
+      <label>Address: </label>
+      <div class="form-control" ng-readonly="true">{{$ctrl.myAddress}}</div>
+  </div>
+  <div class="form-group">
+      <label>Balance: </label>
+      <div class="input-group mb-3">
+        <input type="text" class="form-control" readonly ng-model="$ctrl.balance">
+        <div class="input-group-append">
+          <button class="btn btn-outline-secondary" type="button" ng-click="$ctrl.getBalance()">Refresh</button>
+        </div>
+      </div>
+  </div>
+</div>
+<div>
+    <h3>Send transaction</h3>
+    <div>
+      <form novalidate>
+        <div class="alert alert-success" ng-show="$ctrl.msg_success">
+          {{$ctrl.msg_success}}
+        </div>
+        <div class="alert alert-danger" ng-show="$ctrl.msg_error">
+          {{$ctrl.msg_error}}
+        </div>
+        <div class="form-group">
+          <label>Receiver address</label>
+          <input type="text" ng-model="$ctrl.address_receiver" class="form-control"/>
+        </div>
+
+        <div class="form-group">
+          <label>Amount</label>
+          <input type="number" ng-model="$ctrl.amount" class="form-control"/>
+        </div>
+
+        <div class="form-group">
+          <button class="btn btn-primary" type="button" ng-click="$ctrl.sendTransaction($ctrl.address_receiver,$ctrl.amount)" ng-disabled="!$ctrl.address_receiver || !$ctrl.amount">Send</button>
+        </div>
+      </form>
+    </div>
+</div>
+<div>
+    <h3>My transaction pool</h3>
+    <ul class="nav nav-pills">
+        <li class="nav-item">
+          <a ui-sref="wallet.received({})" ui-sref-active="active" class="nav-link">Received</a>
+        </li>
+        <li class="nav-item">
+          <a ui-sref="wallet.sent({})" ui-sref-active="active" class="nav-link">Sent</a>
+        </li>
+    </ul>
+    <div ui-view style="margin-top:20px">
+    </div>
+</div>

@@ -1,0 +1,32 @@
+
+<div>
+  <h3>Blockchain</h3>
+  <div>
+    Number of blocks: <b>{{$ctrl.number_blocks}}</b>
+  </div>
+
+  <h3 style="margin-top:20px">Mine Block</h3>
+  <div ng-show="$ctrl.running">
+    Mining....
+  </div>
+  <!--<div>
+    <label>Found <b>{{$ctrl.blocksFound.length}}</b> blocks, <b>{{$ctrl.round($ctrl.blocksFound.length*1,5)}}</b> coins</label>
+  </div>-->
+  <button class="btn btn-primary" ng-click="$ctrl.start()" ng-disabled="$ctrl.running">Start</button>
+  <button class="btn btn-primary"  ng-click="$ctrl.stop()" ng-disabled="!$ctrl.running">Stop</button>
+  <div>
+      <small class="form-text text-muted">To mine block, you must to add at least a  peer.</small>
+  </div>
+</div>
+
+<div style="margin-top:20px">
+  <h3>Peers</h3>
+  <div class="input-group">
+    <input type="url" ng-model="$ctrl.peerToAdd" class="form-control" placeholder="Add peer..."/>
+    <span class="input-group-append"><button ng-disabled="!$ctrl.peerToAdd" class="btn btn-primary" ng-click="$ctrl.addPeer($ctrl.peerToAdd)">Add</button></span>
+  </div>
+
+  <ul style="margin-top:20px">
+    <li ng-repeat="peer in $ctrl.peers track by $index">{{peer}}</li>
+  </ul>
+</div>
