@@ -2,11 +2,20 @@
 	"name": "tcoin",
 	"main": "app.js",
 	"description": "Digital coin",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"author": {
 		"name": "Van Truong Pham",
 		"email": "invncur@gmail.com"
 	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/pvtruong/tcoin.git"
+	},
+	"license": "MIT",
+	"bugs": {
+		"url": "https://github.com/pvtruong/tcoin/issues"
+	},
+	"homepage": "https://github.com/pvtruong/tcoin",
 	"keywords": [
 		"blockchain",
 		"coin"
