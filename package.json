@@ -2,7 +2,10 @@
 	"name": "tcoin",
 	"main": "app.js",
 	"description": "Digital coin",
-	"version": "1.0.3",
+	"version": "1.0.4",
+	"bin": {
+		"tcoin": "./command.js"
+	},
 	"author": {
 		"name": "Van Truong Pham",
 		"email": "invncur@gmail.com"
@@ -23,12 +26,13 @@
 	"dependencies": {
 		"async": "latest",
 		"body-parser": "latest",
+		"commander": "^2.14.1",
+		"crypto-js": "^3.1.0",
+		"elliptic": "latest",
 		"express": "latest",
 		"numeral": "latest",
 		"request": "latest",
 		"underscore": "latest",
-		"crypto-js": "^3.1.0",
-		"ws": "^4.0.0",
-		"elliptic": "latest"
+		"ws": "^4.0.0"
 	}
 }

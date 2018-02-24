@@ -5,7 +5,7 @@ a digital coin use NodeJS
   * Open command line (on Windows) or terminal (on Linux, MacOS):
   `npm install -g tcoin`
   * After install. Run
-  `node app.js`
+  `tcoin run`
 ## Use:
   Open link: [http://localhost:3000](http://localhost:3000)
 ## License

@@ -284,6 +284,10 @@ const send = function(ws,message){
 const broadcart = function(message){
   sockets.forEach((ws)=>send(ws,message));
 }
-
-initP2P();
-initHttp();
+const run =()=>{
+  initP2P();
+  initHttp();
+}
+module.exports ={
+  run
+}
