@@ -2,6 +2,7 @@ const cryptoJs = require('crypto-js');
 const _ = require("underscore");
 const {Wallet}= require("./wallet");
 const {hexToBinary,round} = require("./utils");
+const color = require("colors");
 const COINBASE_AMOUNT = 15;
 let transactionPool =[];
 class UnSpentTxOut{
@@ -77,25 +78,25 @@ class Transaction{
   static validCoinBaseTransaction(trans,blockIndex){
     if(!trans) return false;
     if(trans.id!==Transaction.createTransactionId(trans)){
-      console.log("Id of transaction is invalid");
+      console.log("Id of transaction is invalid".red);
       return false;
     }
 
     if(!trans.txIns && trans.txIns.length!==1){
-      console.log("Invalid number of txIns of coinbase transaction");
+      console.log("Invalid number of txIns of coinbase transaction".red);
       return false;
     }
     if(trans.txIns[0].txOutIndex!==blockIndex){
-      console.log("Invalid txOutIndex in coinbase transaction")
+      console.log("Invalid txOutIndex in coinbase transaction".red)
       return false;
     }
 
     if(trans.txOuts && trans.txOuts.length!==1){
-      console.log("Invalid number of txOuts in coin base transaction")
+      console.log("Invalid number of txOuts in coin base transaction".red)
       return false;
     }
     if(trans.txOuts[0].amount!==COINBASE_AMOUNT){
-      console.log("Amount of coinbase in coinBaseTransaction must be ",COINBASE_AMOUNT)
+      console.log("Amount of coinbase in coinBaseTransaction must be".red,COINBASE_AMOUNT)
       return false;
     }
     return true;
@@ -105,12 +106,12 @@ class Transaction{
     let referenceTxOut = Transaction.getUnSpentTxOutById(unSpentTxOuts,txIn.txOutId,txIn.txOutIndex);
 
     if(!referenceTxOut){
-      console.log("Reference TxOut not found",txIn.txOutId,txIn.txOutIndex);
+      console.log("Reference TxOut not found".red,txIn.txOutId,txIn.txOutIndex);
       return false;
     }
 
     if(!Wallet.verifySignature(referenceTxOut.address,transaction.id,txIn.signature)){
-      console.log("Invalid TxIn signature");
+      console.log("Invalid TxIn signature".red);
       return false;
     }
     return true;
@@ -123,18 +124,18 @@ class Transaction{
   static validTransaction(trans,unSpentTxOuts){
     if(!trans) return false;
     if(!Transaction.isValidTransactionStructure(trans)){
-      console.log("Transaction structure is invalid");
+      console.log("Transaction structure is invalid".red);
       return false;
     }
     //valid id
     if(trans.id!==Transaction.createTransactionId(trans)){
-      console.log("Id of transaction is invalid");
+      console.log("Id of transaction is invalid".red);
       return false;
     }
 
     //valid txIns
     if(!trans.txIns.map((txIn)=>Transaction.validTxIn(txIn,trans,unSpentTxOuts)).reduce((a,b)=>a && b,true)){
-      console.log("Some of TxIns are invalid in transaction");
+      console.log("Some of TxIns are invalid in transaction".red);
       return false;
     }
 
@@ -142,7 +143,7 @@ class Transaction{
     let totalAmountOfTxIns = round(trans.txIns.map((txIn)=>Transaction.getUnSpentTxOutById(unSpentTxOuts,txIn.txOutId,txIn.txOutIndex).amount).reduce((a,b)=>a+b,0),5);
     let totalAmountOfTxOuts = round(trans.txOuts.map((t)=>t.amount).reduce((a,b)=>a+b,0),5);
     if(totalAmountOfTxIns!==totalAmountOfTxOuts){
-      console.log("Total amount of txIns <> total amount of txOuts",totalAmountOfTxIns,totalAmountOfTxOuts);
+      console.log("Total amount of txIns <> total amount of txOuts".red,totalAmountOfTxIns,totalAmountOfTxOuts);
       return false;
     }
     return true;
@@ -167,7 +168,7 @@ class Transaction{
     return _unSpentTxOuts.concat(newUnSpentTxOuts).filter((unSpent)=>{
       return ! cunsumedUnSpenTxOuts.find((consumed)=>consumed.txOutId===unSpent.txOutId && consumed.txOutIndex===unSpent.txOutIndex);
     });
-  } 
+  }
   static updateTransactionPool(unSpentTxOuts){
     transactionPool = transactionPool.filter((trans)=>{
       return Transaction.validTransaction(trans,unSpentTxOuts);

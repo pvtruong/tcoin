@@ -5,6 +5,7 @@ const _ = require("underscore");
 const {hexToBinary,round} = require("./utils");
 const fork = require('child_process').fork;
 const path = require("path");
+const color = require("colors");
 let blockchain = [];
 let unSpentTxOuts = [];
 
@@ -73,7 +74,7 @@ class Block{
   static isValidNewBlock(block){
     //valid blockIndex
     if(block.index!==blockchain.length){
-      console.log("index of new block is not valid");
+      console.error("index of new block is not valid:".red,block.index);
       return false;
     }
     //valid pre hash
@@ -84,31 +85,31 @@ class Block{
   static isValidBlock(block,preBlock,aBlockchain){
     if(!aBlockchain) aBlockchain = blockchain;
     if(!preBlock || preBlock.hash!==block.preHash){
-      console.log("preHash of block is invalid");
+      console.error("preHash of block is invalid".red);
       return false;
     }
     //valid block structure
     if(!Block.isValidBlockStructure(block)){
-      console.log("Block structure is invalid");
+      console.error("Block structure is invalid".red);
       return false;
     }
 
     //valid timestamp
     let currentTime = new Date().getTime();
     if (!( preBlock.timestamp - 60*1000 < block.timestamp && block.timestamp - 60*1000 < currentTime)){
-      console.log("timestamp is invalid");
+      console.error("timestamp is invalid".red);
       return false;
     }
     //valid DIFFICULTY_ADJUSTMENT_INTERVAL
     let diff = Block.getDifficulty(preBlock,aBlockchain);
     if(block.difficulty!==diff){
-      console.log("difficulty of block is not valid",block.difficulty,diff);
+      console.error("difficulty of block is not valid",block.difficulty,diff);
       return false;
     }
     //valid hash
     let hash = Block.calculateHashForBlock(block);
     if(hash!==block.hash){
-      console.log("hash of block is not valid");
+      console.error("hash of block is not valid".red);
       return false;
     }
     //valid basecoin transactions
@@ -165,7 +166,7 @@ class Block{
       unSpentTxOuts = Transaction.updateUnSpentTxOuts(block.data,unSpentTxOuts);
       return true;
     }
-    console.error("Block is not valid",block);
+    console.error("Block is not valid".red,block);
     return false;
   }
   static replaceBlock(block,newBlock){
@@ -180,7 +181,7 @@ class Block{
     var _s_newGenesis = JSON.stringify(newGenesis);
     var _s_genesisBlock = JSON.stringify(genesisBlock);
     if(_s_newGenesis!==_s_genesisBlock){
-      console.error("Genesis block is invalid");
+      console.error("Genesis block is invalid".red);
       return false;
     }
     //check each blocks
@@ -203,7 +204,7 @@ class Block{
           .reduce((a, b) => a + b);
   }
   static replaceBlockChain(newBlockChain){
-    console.log("checking new blockchain...");
+    console.log("checking new blockchain...".magenta);
     if(Block.isValidBlockChain(newBlockChain) && Block.getAccumulatedDifficulty(newBlockChain)> Block.getAccumulatedDifficulty(blockchain)){
       //replace blockchain
       blockchain = newBlockChain;
@@ -216,7 +217,7 @@ class Block{
       Transaction.updateTransactionPool(unSpentTxOuts);
       return true;
     }else{
-      console.log("Received Blockchain is invalid");
+      console.error("Received Blockchain is invalid".red);
       return false;
     }
   }

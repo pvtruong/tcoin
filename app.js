@@ -5,6 +5,7 @@ const {Wallet} = require("./wallet");
 const {Transaction} = require("./transaction");
 const async = require("async");
 const WebSocket = require("ws");
+const color = require("colors");
 const MSG_TYPES ={
   QUERY_LASTEST:0,
   QUERY_ALL:1,
@@ -34,15 +35,17 @@ const initHttp = function(PORT){
   app.get("/mineBlock",(req,res)=>{
     if(sockets.filter((s)=>s.url).length>0){
       isMine = true;
+      console.log("Begin mining".yellow);
       mineBlock();
       res.send({is_mining:isMine})
     }else{
-      console.log("Add at least one Peer before mining")
+      console.log("Add at least one Peer before mining".red)
       res.status(400).send("Add at least one Peer before mining");
     }
   })
   app.get("/stopMineBlock",(req,res)=>{
     isMine = false;
+    console.log("Stopped mining".cyan);
     res.send({is_mining:isMine})
   })
   app.get("/mineStatus",(req,res)=>{
@@ -50,16 +53,23 @@ const initHttp = function(PORT){
   })
   let mineBlock = ()=>{
     if(!isMine) return;
-    Block.createNextBlock((newBlock)=>{
-      if(sockets.filter((s)=>s.url).length>0 &&  Block.isValidNewBlock(newBlock)){
-        console.log("New Block is sent");
-        broadcart({type:MSG_TYPES.RESPONSE_BLOCKCHAIN,data:[newBlock]});
-        mineBlock();
-      }else{
-        console.log("New Block is not valid");
-        mineBlock();
-      }
-    })
+    try{
+      Block.createNextBlock((newBlock)=>{
+        if(sockets.filter((s)=>s.url).length>0 &&  Block.isValidNewBlock(newBlock)){
+          console.log("New Block is sent, index".green,newBlock.index);
+          broadcart({type:MSG_TYPES.RESPONSE_BLOCKCHAIN,data:[newBlock]});
+          mineBlock();
+        }else{
+          console.error("New Block is not valid".red);
+          mineBlock();
+        }
+      })
+    }catch(e){
+      console.error(e.message);
+      console.log("Stopped mining".cyan);
+      isMine = false;
+    }
+
   }
   //add peer
   app.post("/addPeer",(req,res)=>{
@@ -83,7 +93,7 @@ const initHttp = function(PORT){
       }
       try{
         let trans = sendTransaction(req.body);
-        console.log("sent a transaction",trans.id);
+        console.log("Sent a transaction".green,trans.id);
         broadcart({type:MSG_TYPES.RESPONSE_TRANSACTION,data:[trans]});
         res.send(trans);
       }catch(e){
@@ -144,7 +154,7 @@ const initHttp = function(PORT){
   })
   //listen
   app.listen(PORT,()=>{
-    console.log("Http server is running at port",PORT);
+    console.log("Http server is running at port".blue,PORT);
   })
 }
 
@@ -154,12 +164,12 @@ const initConnection = function(ws){
     //console.log("received message:",message);
     switch (message.type) {
       case MSG_TYPES.QUERY_LASTEST:
-        console.log("query lastest by",ws.url);
+        //console.log("query lastest by",ws.url);
         broadcart({type:MSG_TYPES.RESPONSE_BLOCKCHAIN,data:[Block.getLastestBlock()]});
         break;
       case MSG_TYPES.QUERY_ALL:
         let msg = Block.getBlockChain();
-        console.log("query all blocks by",ws.url);
+        //console.log("query all blocks by",ws.url);
         broadcart({type:MSG_TYPES.RESPONSE_BLOCKCHAIN,data:msg});
         break;
       case MSG_TYPES.RESPONSE_BLOCKCHAIN:
@@ -171,7 +181,7 @@ const initConnection = function(ws){
             if(receivedLastestBlock.preHash===currentLastestBlock.hash){
               if(Block.addBlockToChain(receivedLastestBlock)){
                 //new block
-                console.log("added a block to chain from",ws.url);
+                console.log("added a block to chain, index".green,receivedLastestBlock.index,", from".green,ws.url);
                 broadcart({type:MSG_TYPES.RESPONSE_BLOCKCHAIN,data:[Block.getLastestBlock()]});
               }
             }else if(data.length==Block.getBlockChain().length){
@@ -181,32 +191,32 @@ const initConnection = function(ws){
               //replace chain
               console.log("Received blockchain from",ws.url);
               if(Block.replaceBlockChain(data)){
-                console.log("Replace blockchain from", ws.url)
+                console.log("Replace blockchain from".blue, ws.url.blue)
                 broadcart({type:MSG_TYPES.RESPONSE_BLOCKCHAIN,data:[Block.getLastestBlock()]});
-                console.log("query transaction pool from",ws.url)
+                //console.log("query transaction pool from",ws.url)
                 send(ws,{type:MSG_TYPES.QUERY_ALL_TRANSACTION_POOL});
               }
             }
           }else{
-            console.log("Received blockchain is no longer.");
+            //console.log("Received blockchain is no longer.");
           }
         }
         break;
       case MSG_TYPES.QUERY_ALL_TRANSACTION_POOL:
-        console.log("query transaction pool by",ws.url)
+        //console.log("query transaction pool by",ws.url)
         broadcart({type:MSG_TYPES.RESPONSE_TRANSACTION,data:Transaction.getTransactionPool()});
         break;
       case MSG_TYPES.RESPONSE_TRANSACTION:
         if(message.data){
           process.nextTick(()=>{
-            console.log("Response transaction from",ws.url)
+            //console.log("Response transaction from",ws.url)
             async.map(message.data,(trans,callback)=>{
               try{
                 addTransactionPool(trans);
-                console.log("added transaction to pool",trans.id);
+                console.log("added transaction to pool".green,", id:",trans.id);
                 broadcart({type:MSG_TYPES.RESPONSE_TRANSACTION,data:[trans]});
               }catch(e){
-                if(e.message) console.log(e.message);
+                if(e.message) console.error(e.message);
               }
               callback();
             },(err,rs)=>{
@@ -220,12 +230,12 @@ const initConnection = function(ws){
 }
 const initP2P = function(P2P_PORT){
   let wsServer = new WebSocket.Server({port:P2P_PORT});
-  console.log("My peer is running at port",P2P_PORT);
+  console.log("My peer is running at port".blue,P2P_PORT);
   wsServer.on("connection",(ws)=>{
     sockets.push(ws);
     initConnection(ws);
     ws.on("error",(error)=>{
-      console.log("Connection failed");
+      console.error("Connection failed".red);
     })
   });
   //default connect to this peer
@@ -253,16 +263,16 @@ const connect2Peers = function(peers){
 
         })
         ws.on("error",()=>{
-          console.log("Can't connect to peer. Try connect after 10s",peer);
+          console.error("Can't connect to peer. Try connect after 5m".red,peer);
           if(sockets.indexOf(ws)>=0){
             sockets.splice(sockets.indexOf(ws), 1);
           }
           setTimeout(function(){
             connect2Peers([peer]);
-          },10*1000);
+          },5*60*1000);
         })
         ws.on("close",()=>{
-          console.log('Peer',ws.url, "was closed. Reconnect after 10m");
+          console.error('Peer',ws.url, "was closed. Reconnect after 10m".red);
           if(sockets.indexOf(ws)>=0){
             sockets.splice(sockets.indexOf(ws), 1);
           }
