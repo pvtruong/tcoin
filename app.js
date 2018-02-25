@@ -5,8 +5,6 @@ const {Wallet} = require("./wallet");
 const {Transaction} = require("./transaction");
 const async = require("async");
 const WebSocket = require("ws");
-const PORT = process.env.HTTP_PORT || 3000;
-const P2P_PORT = process.env.P2P_PORT || 3001;
 const MSG_TYPES ={
   QUERY_LASTEST:0,
   QUERY_ALL:1,
@@ -16,7 +14,7 @@ const MSG_TYPES ={
 }
 let sockets =[];
 let isMine;
-const initHttp = function(){
+const initHttp = function(PORT){
   let app = express();
   app.use(bodyParser.json());
   app.use('/', express.static(__dirname + '/public'));
@@ -146,7 +144,7 @@ const initHttp = function(){
   })
   //listen
   app.listen(PORT,()=>{
-    console.log("server is running at port ",PORT);
+    console.log("Http server is running at port",PORT);
   })
 }
 
@@ -220,8 +218,9 @@ const initConnection = function(ws){
     }
   })
 }
-const initP2P = function(){
+const initP2P = function(P2P_PORT){
   let wsServer = new WebSocket.Server({port:P2P_PORT});
+  console.log("My peer is running at port",P2P_PORT);
   wsServer.on("connection",(ws)=>{
     sockets.push(ws);
     initConnection(ws);
@@ -232,7 +231,7 @@ const initP2P = function(){
   //default connect to this peer
   connect2Peers(["http://27.74.255.132:3001"]);
   //connect2Peers(["http://localhost:4001"]);
-  //connect2Peers(["http://120.72.99.75:5001"]);
+  connect2Peers(["http://120.72.99.75:5001"]);
 }
 const connect2Peers = function(peers){
   peers.forEach((peer)=>{
@@ -284,9 +283,9 @@ const send = function(ws,message){
 const broadcart = function(message){
   sockets.forEach((ws)=>send(ws,message));
 }
-const run =()=>{
-  initP2P();
-  initHttp();
+const run =(http_port,p2p_port)=>{
+  initP2P(p2p_port||3001);
+  initHttp(http_port||3000);
 }
 module.exports ={
   run

@@ -177,7 +177,9 @@ class Block{
     if(newBlocks.length==0) return false;
     //check genesis block
     var newGenesis = newBlocks[0];
-    if(JSON.stringify(newGenesis)!==JSON.stringify(genesisBlock)){
+    var _s_newGenesis = JSON.stringify(newGenesis);
+    var _s_genesisBlock = JSON.stringify(genesisBlock);
+    if(_s_newGenesis!==_s_genesisBlock){
       console.error("Genesis block is invalid");
       return false;
     }
