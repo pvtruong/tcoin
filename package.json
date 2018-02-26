@@ -2,7 +2,7 @@
 	"name": "tcoin",
 	"main": "app.js",
 	"description": "Digital coin",
-	"version": "1.0.6",
+	"version": "1.0.7",
 	"bin": {
 		"tcoin": "./command.js"
 	},

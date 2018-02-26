@@ -56,7 +56,7 @@ const initHttp = function(PORT){
     try{
       Block.createNextBlock((newBlock)=>{
         if(sockets.filter((s)=>s.url).length>0 &&  Block.isValidNewBlock(newBlock)){
-          console.log("New Block is sent, index".green,newBlock.index);
+          console.log("New Block is sent, index:".cyan,newBlock.index + ", hash:".cyan,newBlock.hash);
           broadcart({type:MSG_TYPES.RESPONSE_BLOCKCHAIN,data:[newBlock]});
           mineBlock();
         }else{
@@ -65,7 +65,7 @@ const initHttp = function(PORT){
         }
       })
     }catch(e){
-      console.error(e.message);
+      console.error(e.message.red);
       console.log("Stopped mining".cyan);
       isMine = false;
     }
@@ -181,7 +181,7 @@ const initConnection = function(ws){
             if(receivedLastestBlock.preHash===currentLastestBlock.hash){
               if(Block.addBlockToChain(receivedLastestBlock)){
                 //new block
-                console.log("added a block to chain, index".green,receivedLastestBlock.index,", from".green,ws.url);
+                console.log("added a block to chain, index:".green,receivedLastestBlock.index + ",","hash:".green,receivedLastestBlock.hash);
                 broadcart({type:MSG_TYPES.RESPONSE_BLOCKCHAIN,data:[Block.getLastestBlock()]});
               }
             }else if(data.length==Block.getBlockChain().length){
@@ -213,7 +213,7 @@ const initConnection = function(ws){
             async.map(message.data,(trans,callback)=>{
               try{
                 addTransactionPool(trans);
-                console.log("added transaction to pool".green,", id:",trans.id);
+                console.log("added transaction to pool,".green,"id:",trans.id);
                 broadcart({type:MSG_TYPES.RESPONSE_TRANSACTION,data:[trans]});
               }catch(e){
                 if(e.message) console.error(e.message);
@@ -278,7 +278,7 @@ const connect2Peers = function(peers){
           }
           setTimeout(function(){
             connect2Peers([peer]);
-          },10*60*1000);
+          },1*60*1000);
         })
       }
     }

@@ -74,7 +74,7 @@ class Block{
   static isValidNewBlock(block){
     //valid blockIndex
     if(block.index!==blockchain.length){
-      console.error("index of new block is not valid:".red,block.index);
+      console.error("index of new block is not valid:".red,block.index+",","hash:".red,block.hash);
       return false;
     }
     //valid pre hash
@@ -143,9 +143,16 @@ class Block{
     if(!preBlock) preBlock = Block.getLastestBlock();
     let difficulty = Block.getDifficulty();
     let processMine = fork(__dirname + '/mine.js');
-    processMine.on('message', function(newBlock) {
+    //console.log("Mining process is running");
+    processMine.on('message', (newBlock)=>{
       callback(newBlock);
     });
+    processMine.on("error",(error)=>{
+      throw new Error("Error when forking the mining process");
+    })
+    processMine.on("exit",()=>{
+      //console.log("Mining process exited");
+    })
     processMine.send({difficulty:difficulty,data:data,preBlock:preBlock});
 
   }
@@ -182,6 +189,8 @@ class Block{
     var _s_genesisBlock = JSON.stringify(genesisBlock);
     if(_s_newGenesis!==_s_genesisBlock){
       console.error("Genesis block is invalid".red);
+      console.error("Genesis block",_s_genesisBlock);
+      console.error("Received genesis block",_s_newGenesis);
       return false;
     }
     //check each blocks
