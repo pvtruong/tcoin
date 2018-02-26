@@ -2,9 +2,9 @@
 	"name": "tcoin",
 	"main": "app.js",
 	"description": "Digital coin",
-	"version": "1.0.8",
+	"version": "1.0.9",
 	"bin": {
-		"tcoin": "./command.js"
+		"tcoin": "./app.js"
 	},
 	"author": {
 		"name": "Van Truong Pham",

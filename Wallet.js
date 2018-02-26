@@ -18,8 +18,21 @@ class Wallet{
     let privateKey= fs.readFileSync(PRIVATE_KEY,'utf8');
     return privateKey;
   }
-  static getPublic(){
-    let privateKey = Wallet.getPrivate();
+  static replaceWallet(data){
+    if(data.privateKey){
+      try{
+        let address = Wallet.getPublic(data.privateKey);
+        fs.writeFileSync(PRIVATE_KEY,data.privateKey);
+        return address;
+      }catch(e){
+        throw new Error(e.message);
+      }
+
+    }
+    throw new Error("Private key is invalid");
+  }
+  static getPublic(privateKey){
+    if(!privateKey) privateKey = Wallet.getPrivate();
     let key = EC.keyFromPrivate(privateKey,'hex');
     return key.getPublic().encode('hex');
   }

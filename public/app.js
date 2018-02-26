@@ -17,6 +17,26 @@ app.component("wallet",{
         alert("Can't get your address")
       });
     }
+    $ctrl.getPrivate = function(){
+      $http.get("/privateKey").then(function(res){
+        $ctrl.privateKey = res.data;
+      },function(error){
+        alert("Can't get your private key")
+      });
+    }
+    $ctrl.replaceWallet = function(privateKey){
+      if(!$ctrl.isEdit){
+        $ctrl.isEdit = true;
+        return;
+      }
+      $http.post("/replaceWallet",{privateKey:privateKey}).then(function(res){
+        $ctrl.myAddress = res.data;
+        $ctrl.getBalance();
+        $ctrl.isEdit=false;
+      },function(error){
+        alert(error.data);
+      })
+    }
     $ctrl.sendTransaction = function(address,amount){
       $ctrl.msg_success = "";
       $ctrl.msg_error ="";
@@ -27,6 +47,7 @@ app.component("wallet",{
         $ctrl.msg_error = "Error: " + error.data;
       })
     }
+    $ctrl.getPrivate();
     $ctrl.getMyAddress();
     $ctrl.getBalance();
     var ref = $interval(function(){

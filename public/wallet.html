@@ -1,9 +1,23 @@
 <div>
-  <h3>My Wallet</h3>
+  <h3>My Wallet</a></h3>
+  <div class="form-group">
+      <label>Private key: </label>
+      <div>
+          <small style="color:red">Please save the private key carefully and don't share for any one. If you lost the private key, you will lost all your coins.</small>
+      </div>
+      <div class="input-group mb-3">
+        <input type="text" class="form-control" ng-model="$ctrl.privateKey" ng-readonly="!$ctrl.isEdit">
+        <div class="input-group-append">
+          <button class="btn btn-outline-secondary" type="button" ng-click="$ctrl.replaceWallet($ctrl.privateKey)">{{$ctrl.isEdit?'Save':'Change'}}</button>
+        </div>
+      </div>
+
+  </div>
   <div class="form-group">
       <label>Address: </label>
       <div class="form-control" ng-readonly="true">{{$ctrl.myAddress}}</div>
   </div>
+
   <div class="form-group">
       <label>Balance: </label>
       <div class="input-group mb-3">
