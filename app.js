@@ -184,17 +184,19 @@ const initConnection = function(ws){
                 console.log("added a block to chain, index:".green,receivedLastestBlock.index + ",","hash:".green,receivedLastestBlock.hash);
                 broadcart({type:MSG_TYPES.RESPONSE_BLOCKCHAIN,data:[Block.getLastestBlock()]});
               }
-            }else if(data.length==Block.getBlockChain().length){
+            }else if(data.length===Block.getBlockChain().length){
               //query all blocks of chain
               broadcart({type:MSG_TYPES.QUERY_ALL});
             }else{
-              //replace chain
-              console.log("Received blockchain from",ws.url);
-              if(Block.replaceBlockChain(data)){
-                console.log("Replace blockchain from".blue, ws.url.blue)
-                broadcart({type:MSG_TYPES.RESPONSE_BLOCKCHAIN,data:[Block.getLastestBlock()]});
-                //console.log("query transaction pool from",ws.url)
-                send(ws,{type:MSG_TYPES.QUERY_ALL_TRANSACTION_POOL});
+              if(data.length>1){
+                //replace chain
+                console.log("Received blockchain from",ws.url);
+                if(Block.replaceBlockChain(data)){
+                  console.log("Replace blockchain from".blue, ws.url.blue)
+                  broadcart({type:MSG_TYPES.RESPONSE_BLOCKCHAIN,data:[Block.getLastestBlock()]});
+                  //console.log("query transaction pool from",ws.url)
+                  send(ws,{type:MSG_TYPES.QUERY_ALL_TRANSACTION_POOL});
+                }
               }
             }
           }else{
@@ -272,7 +274,7 @@ const connect2Peers = function(peers){
           },5*60*1000);
         })
         ws.on("close",()=>{
-          console.error('Peer',ws.url, "was closed. Reconnect after 10m".red);
+          console.error('Peer',ws.url, "was closed. Reconnect after 1m".red);
           if(sockets.indexOf(ws)>=0){
             sockets.splice(sockets.indexOf(ws), 1);
           }

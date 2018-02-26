@@ -1,7 +1,7 @@
 # tcoin
 a digital coin use NodeJS
 ## Install
-  * Install NodeJS. [Download](https://nodejs.org)
+  * Install newest NodeJS. [Download](https://nodejs.org)
   * Open CMD (on Windows) or terminal (on Linux, MacOS):
   `npm install -g tcoin`
   * To start tcoin, run command:
