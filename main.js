@@ -58,10 +58,15 @@ const initHttp = function(PORT){
         if(sockets.filter((s)=>s.url).length>0 &&  Block.isValidNewBlock(newBlock)){
           console.log("New Block is sent, index:".cyan,newBlock.index + ", hash:".cyan,newBlock.hash);
           broadcart({type:MSG_TYPES.RESPONSE_BLOCKCHAIN,data:[newBlock]});
-          mineBlock();
+          setTimeout(()=>{
+              mineBlock();
+          },500)
+
         }else{
           console.error("New Block is not valid".red);
-          mineBlock();
+          setTimeout(()=>{
+              mineBlock();
+          },500)
         }
       })
     }catch(e){
@@ -203,7 +208,7 @@ const initConnection = function(ws){
             }else{
               if(data.length>1){
                 //replace chain
-                console.log("Received blockchain from",ws.url);
+                console.log("Received blockchain from".grey,ws.url.grey);
                 if(Block.replaceBlockChain(data)){
                   console.log("Replace blockchain from".blue, ws.url.blue)
                   broadcart({type:MSG_TYPES.RESPONSE_BLOCKCHAIN,data:[Block.getLastestBlock()]});
@@ -230,7 +235,12 @@ const initConnection = function(ws){
             async.map(message.data,(trans,callback)=>{
               try{
                 addTransactionPool(trans);
-                console.log("added transaction to pool,".green,"id:",trans.id);
+                if(message.data.length===1){
+                  console.log("added new transaction to pool,".green,"id:",trans.id);
+                }else{
+                  console.log("added transaction to pool,".grey,"id:".grey,trans.id.grey);
+                }
+
                 broadcart({type:MSG_TYPES.RESPONSE_TRANSACTION,data:[trans]});
               }catch(e){
                 if(e.message) console.error(e.message);
@@ -264,7 +274,7 @@ const connect2Peers = function(peers){
   peers.forEach((peer)=>{
     if(peer){
       if(!sockets.find((s)=>s.url===peer)){
-        console.log("connecting to peer",peer,"...");
+        console.log("connecting to peer".grey,peer.grey);
         let ws = new WebSocket(peer);
         ws.on("open",()=>{
           sockets.push(ws);
@@ -274,28 +284,29 @@ const connect2Peers = function(peers){
           send(ws,{type:MSG_TYPES.QUERY_LASTEST});
           //broadcart transaction pool
           setTimeout(()=>{
-            console.log("query transaction pool")
+            console.log("query transaction pool".grey)
             broadcart({type:MSG_TYPES.QUERY_ALL_TRANSACTION_POOL});
           },3000)
 
         })
         ws.on("error",()=>{
-          console.error("Can't connect to peer. Try connect after 5m".red,peer);
-          if(sockets.indexOf(ws)>=0){
-            sockets.splice(sockets.indexOf(ws), 1);
-          }
-          setTimeout(function(){
-            connect2Peers([peer]);
-          },5*60*1000);
-        })
-        ws.on("close",()=>{
-          console.error('Peer',ws.url, "was closed. Reconnect after 1m".red);
+          console.error("Can't connect to peer. Try connect after 1m".red,peer);
           if(sockets.indexOf(ws)>=0){
             sockets.splice(sockets.indexOf(ws), 1);
           }
           setTimeout(function(){
             connect2Peers([peer]);
           },1*60*1000);
+        })
+        ws.on("close",()=>{
+          //console.error('Peer',ws.url, "was closed. Reconnect after 1m".red);
+          if(sockets.indexOf(ws)>=0){
+            sockets.splice(sockets.indexOf(ws), 1);
+          }
+          /*setTimeout(function(){
+            connect2Peers([peer]);
+          },1*60*1000);
+          */
         })
       }
     }
