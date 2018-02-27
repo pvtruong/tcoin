@@ -9,12 +9,11 @@ process.on('message', function(msg) {
   let timestamp = new Date().getTime();
   let difficulty = msg.difficulty;
   let nonce = 0;
-  console.log("finding block with difficulty",difficulty);
+  console.log(`Finding block with difficulty: ${difficulty}, index: ${index}`);
   while(true){
     let hash = Block.calculateHash(index,preHash,timestamp,data,difficulty,nonce);
     if(Block.hashMatchesDifficulty(hash,difficulty)){
       let newBlock =new Block(index,hash,preHash,timestamp,data,difficulty,nonce);
-
       process.send(newBlock);
       process.exit();
     }

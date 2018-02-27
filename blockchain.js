@@ -8,6 +8,7 @@ const path = require("path");
 const color = require("colors");
 let blockchain = [];
 let unSpentTxOuts = [];
+let processMine;
 
 const DIFFICULTY_ADJUSTMENT_INTERVAL = 10;
 const BLOCK_GENERATION_INTERVAL = 10;
@@ -74,7 +75,7 @@ class Block{
   static isValidNewBlock(block){
     //valid blockIndex
     if(block.index!==blockchain.length){
-      console.error("index of new block is not valid:".red,block.index+",","hash:".red,block.hash);
+      console.error(`index of new block is not valid: ${block.index}, hash: ${block.hash}`.red);
       return false;
     }
     //valid pre hash
@@ -103,7 +104,7 @@ class Block{
     //valid DIFFICULTY_ADJUSTMENT_INTERVAL
     let diff = Block.getDifficulty(preBlock,aBlockchain);
     if(block.difficulty!==diff){
-      console.error("difficulty of block is not valid",block.difficulty,diff);
+      console.error(`difficulty of block is not valid. Difficulty of block is  ${block.difficulty}, correct difficulty is ${diff}`);
       return false;
     }
     //valid hash
@@ -139,22 +140,34 @@ class Block{
     return binary.startsWith(prefix);
   }
   static createNextRawBlock(data,preBlock,callback){
+    if(processMine){
+      console.log("Cancel current mining process and fork new process".red);
+      processMine.kill();
+
+    }
     if(!callback) callback = function(){}
     if(!preBlock) preBlock = Block.getLastestBlock();
     let difficulty = Block.getDifficulty();
-    let processMine = fork(__dirname + '/mine.js');
+    let sentResult;
+    processMine = fork(__dirname + '/mine.js');
     //console.log("Mining process is running");
     processMine.on('message', (newBlock)=>{
-      callback(newBlock);
+      processMine = null;
+      callback(null,newBlock);
+      sentResult = true;
     });
     processMine.on("error",(error)=>{
-      throw new Error("Error when forking the mining process");
+      processMine = null;
+      callback("Error when forking the mining process");
     })
     processMine.on("exit",()=>{
-      //console.log("Mining process exited");
+      if(!sentResult){
+        processMine = null;
+        callback("Mining process exited");
+      }
+
     })
     processMine.send({difficulty:difficulty,data:data,preBlock:preBlock});
-
   }
   static createNextBlock(callback){
     if(!callback) callback = function(){}
@@ -162,8 +175,8 @@ class Block{
     let preBlock = Block.getLastestBlock();
     let coinBaseTransaction = Transaction.createCoinBaseTransaction(address,preBlock.index+1);
     let dataBLock = [coinBaseTransaction];
-    Block.createNextRawBlock(dataBLock,preBlock,(newBlock)=>{
-      callback(newBlock);
+    Block.createNextRawBlock(dataBLock,preBlock,(error,newBlock)=>{
+      callback(error,newBlock);
     })
   }
   static addBlockToChain(block){
