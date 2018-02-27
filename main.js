@@ -30,14 +30,16 @@ let mineBlock = ()=>{
         if(sockets.filter((s)=>s.url).length>0 &&  Block.isValidNewBlock(newBlock)){
           console.log(`New Block is sent, index: ${newBlock.index}, hash: ${newBlock.hash}`.cyan);
           broadcart({type:MSG_TYPES.RESPONSE_BLOCKCHAIN,data:[newBlock]});
-        }else{
-          console.error("New Block is not valid".red);
           setTimeout(()=>{
               mineBlock();
           },500);
+        }else{
+          console.error("New Block is not valid".red);
+          mineBlock();
         }
       }else{
         console.log(error.red);
+        mineBlock();
       }
     })
   }catch(e){
@@ -132,7 +134,9 @@ const initHttp = function(PORT){
   })
   //get balance
   app.get("/balance",(req,res)=>{
-    res.send({balance:getBalance(req.query.address)});
+    process.nextTick(()=>{
+      res.send({balance:getBalance(req.query.address)});
+    })
   })
   //get unSpentTxOuts
   app.get("/unSpentTxOuts",(req,res)=>{
@@ -189,13 +193,15 @@ const initConnection = function(ws){
     //console.log("received message:",message);
     switch (message.type) {
       case MSG_TYPES.QUERY_LASTEST:
-        //console.log("query lastest by",ws.url);
-        broadcart({type:MSG_TYPES.RESPONSE_BLOCKCHAIN,data:[Block.getLastestBlock()]});
+        process.nextTick(()=>{
+          broadcart({type:MSG_TYPES.RESPONSE_BLOCKCHAIN,data:[Block.getLastestBlock()]});
+        })
         break;
       case MSG_TYPES.QUERY_ALL:
-        let msg = Block.getBlockChain();
-        //console.log("query all blocks by",ws.url);
-        broadcart({type:MSG_TYPES.RESPONSE_BLOCKCHAIN,data:msg});
+        process.nextTick(()=>{
+          let msg = Block.getBlockChain();
+          broadcart({type:MSG_TYPES.RESPONSE_BLOCKCHAIN,data:msg});
+        })
         break;
       case MSG_TYPES.RESPONSE_BLOCKCHAIN:
         if(message.data){
@@ -208,7 +214,6 @@ const initConnection = function(ws){
                 //new block
                 console.log(`Added a block to chain, index: ${receivedLastestBlock.index}, hash: ${receivedLastestBlock.hash}`.green);
                 broadcart({type:MSG_TYPES.RESPONSE_BLOCKCHAIN,data:[Block.getLastestBlock()]});
-                mineBlock();
               }
             }else if(data.length===Block.getBlockChain().length){
               //query all blocks of chain
@@ -234,7 +239,13 @@ const initConnection = function(ws){
         break;
       case MSG_TYPES.QUERY_ALL_TRANSACTION_POOL:
         //console.log("query transaction pool by",ws.url)
-        broadcart({type:MSG_TYPES.RESPONSE_TRANSACTION,data:Transaction.getTransactionPool()});
+        process.nextTick(()=>{
+          let trans = Transaction.getTransactionPool();
+          async.map(trans,(tr,cb)=>{
+            broadcart({type:MSG_TYPES.RESPONSE_TRANSACTION,data:[tr]});
+          },(e,rs)=>{
+          })
+        })
         break;
       case MSG_TYPES.RESPONSE_TRANSACTION:
         if(message.data){

@@ -2,6 +2,7 @@ const cryptoJs = require("crypto-js");
 const {Transaction} = require("./transaction");
 const {Wallet} = require("./wallet");
 const _ = require("underscore");
+const async =require("async");
 const {hexToBinary,round} = require("./utils");
 const fork = require('child_process').fork;
 const path = require("path");
@@ -9,7 +10,6 @@ const color = require("colors");
 let blockchain = [];
 let unSpentTxOuts = [];
 let processMine;
-
 const DIFFICULTY_ADJUSTMENT_INTERVAL = 10;
 const BLOCK_GENERATION_INTERVAL = 10;
 
@@ -140,31 +140,24 @@ class Block{
     return binary.startsWith(prefix);
   }
   static createNextRawBlock(data,preBlock,callback){
-    if(processMine){
-      console.log("Cancel current mining process and fork new process".red);
-      processMine.kill();
 
-    }
     if(!callback) callback = function(){}
     if(!preBlock) preBlock = Block.getLastestBlock();
+
     let difficulty = Block.getDifficulty();
-    let sentResult;
     processMine = fork(__dirname + '/mine.js');
     //console.log("Mining process is running");
     processMine.on('message', (newBlock)=>{
-      processMine = null;
-      callback(null,newBlock);
-      sentResult = true;
+      if(newBlock.error){
+        callback(newBlock.error);
+      }else{
+        callback(null,newBlock);
+      }
     });
     processMine.on("error",(error)=>{
-      processMine = null;
       callback("Error when forking the mining process");
     })
     processMine.on("exit",()=>{
-      if(!sentResult){
-        processMine = null;
-        callback("Mining process exited");
-      }
 
     })
     processMine.send({difficulty:difficulty,data:data,preBlock:preBlock});
