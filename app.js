@@ -8,7 +8,7 @@ var program = require('commander');
 var app = require("./main");
 const color = require("colors");
 program
-  .version('1.0.12')
+  .version('1.0.13')
   .option("-t, --http_port [type]","Wich port http to used. default 3000")
   .option("-p, --p2p_port [type]","Wich port p2p to used. default 3001")
 program.parse(process.argv);

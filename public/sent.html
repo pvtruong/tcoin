@@ -1,26 +1,34 @@
-<table class="table table-striped">
-  <tr ng-repeat="trans in $ctrl.transactionPool">
-      <td>
-        <div><b>Transaction ID:</b> {{trans.id}}</div>
-        <div>
-          <b>TxIns:</b>
-            <ul>
-              <li ng-repeat="txIn in trans.txIns">
-                  <div><b>TxOut Id:</b> {{txIn.txOutId}}</div>
-                  <div><b>TxOut Index:</b> {{txIn.txOutIndex}}</div>
-                  <div><b>Signature:</b> {{txIn.signature}}</div>
-              </li>
-            </ul>
-        </div>
-        <div>
-          <b>TxOuts:</b>
-            <ul>
-              <li ng-repeat="txOut in trans.txOuts">
-                  <div><b>Address:</b> {{txOut.address}}</div>
-                  <div><b>Amount:</b> {{txOut.amount}}</div>
-              </li>
-            </ul>
-        </div>
-      </td>
-  </tr>
+<table st-table="displayedCollection" st-safe-src="$ctrl.transactionPool" class="table table-striped">
+  <thead>
+    <tr>
+			<th>
+				<input st-search placeholder="Search" class="input-sm form-control" type="search"/>
+			</th>
+		</tr>
+  </thead>
+  <tbody>
+    <tr ng-repeat="trans in displayedCollection">
+        <td>
+          <div><b>Transaction ID:</b> {{trans.id}}</div>
+          <div>
+            <b>To: </b>{{trans.to}}
+          </div>
+          <div>
+            <b>Date: </b>{{trans.date|date}}
+          </div>
+          <div>
+            <b>Amount: </b>{{trans.amount}}
+          </div>
+        </td>
+    </tr>
+  </tbody>
+  <tfoot>
+  	<tr>
+  		<td colspan="1" class="text-center">
+
+    			<div class="page-item" st-pagination="" st-items-by-page="$ctrl.itemsByPage" st-displayed-pages="7"></div>
+
+  		</td>
+  	</tr>
+  </tfoot>
 </table>

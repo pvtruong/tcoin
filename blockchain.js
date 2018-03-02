@@ -252,20 +252,27 @@ unSpentTxOuts = Transaction.updateUnSpentTxOuts(genesisBlock.data,unSpentTxOuts)
 const addTransactionPool =(trans)=>{
   Transaction.addTransactionPool(trans,unSpentTxOuts);
 }
-const sendTransaction = (data)=>{
-  let trans = Transaction.createTransaction(unSpentTxOuts,data.address_receiver,data.amount);
-  //Transaction.addTransactionPool(trans,unSpentTxOuts);
-  return trans;
+const addTransactionPoolAsync =(trans,callback)=>{
+  Transaction.addTransactionPoolAsync(trans,unSpentTxOuts,(e,trans)=>{
+    callback(e,trans);
+  });
 }
-const getBalance = ()=>{
+const sendTransaction = (data,callback)=>{
+  let trans = Transaction.createTransactionAsync(unSpentTxOuts,data.address_receiver,data.amount,(e,trans)=>{
+    callback(e,trans);
+  });
+}
+const getBalance = (callback)=>{
   let address = Wallet.getAddress();
-  let unSpentTxOutsOfAddess = Transaction.getUnSpentTxOutsByAddress(unSpentTxOuts,address);
-  return round(unSpentTxOutsOfAddess.map((un)=>un.amount).reduce((a,b)=>a+b,0),5)
+  Transaction.getUnSpentTxOutsByAddressAsync(unSpentTxOuts,address,(e,unSpentTxOutsOfAddess)=>{
+    let balance = round(unSpentTxOutsOfAddess.map((un)=>un.amount).reduce((a,b)=>a+b,0),5)
+    callback(null,balance);
+  });
 }
 const getUnSpentTxOuts=()=>{
   return unSpentTxOuts;
 }
 //exports
 module.exports={
-  Block,sendTransaction,getBalance,addTransactionPool,getUnSpentTxOuts
+  Block,sendTransaction,getBalance,addTransactionPool,addTransactionPoolAsync,getUnSpentTxOuts
 }

@@ -1,4 +1,4 @@
-var app = angular.module("APP",['ui.router']);
+var app = angular.module("APP",['ui.router','smart-table']);
 app.component("wallet",{
   templateUrl:"wallet.html",
   controller:function($scope,$http,$interval){
@@ -62,8 +62,10 @@ app.component("received",{
   templateUrl:"received.html",
   controller:function($scope,$http){
     var $ctrl = this;
+    $ctrl.itemsByPage = 5;
     $http.get("/receivedTransactions").then(function(res){
       $ctrl.transactionPool = res.data;
+
     })
   }
 })
@@ -71,8 +73,10 @@ app.component("sent",{
   templateUrl:"sent.html",
   controller:function($scope,$http){
     var $ctrl = this;
+    $ctrl.itemsByPage = 5;
     $http.get("/sentTransactions").then(function(res){
       $ctrl.transactionPool = res.data;
+
     })
   }
 })

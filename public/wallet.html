@@ -39,14 +39,16 @@
           {{$ctrl.msg_error}}
         </div>
         <div class="form-group">
-          <label>Receiver address</label>
+          <label>Receiver address (*)</label>
           <input type="text" ng-model="$ctrl.address_receiver" class="form-control"/>
         </div>
 
         <div class="form-group">
-          <label>Amount</label>
+          <label>Amount (*)</label>
           <input type="number" ng-model="$ctrl.amount" class="form-control"/>
         </div>
+
+
 
         <div class="form-group">
           <button class="btn btn-primary" type="button" ng-click="$ctrl.sendTransaction($ctrl.address_receiver,$ctrl.amount)" ng-disabled="!$ctrl.address_receiver || !$ctrl.amount">Send</button>

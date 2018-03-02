@@ -1,6 +1,6 @@
 const express = require("express");
 const bodyParser = require("body-parser");
-const {Block,sendTransaction,getBalance,addTransactionPool,getUnSpentTxOuts} = require("./blockchain");
+const {Block,sendTransaction,getBalance,addTransactionPool,addTransactionPoolAsync,getUnSpentTxOuts} = require("./blockchain");
 const {Wallet} = require("./wallet");
 const {Transaction} = require("./transaction");
 const async = require("async");
@@ -105,14 +105,12 @@ const initHttp = function(PORT){
       if(sockets.filter((s)=>s.url).length===0){
         return res.status(400).send("Add at least one Peer before sending a transaction");
       }
-      try{
-        let trans = sendTransaction(req.body);
+      sendTransaction(req.body,(e,trans)=>{
+        if(e) return res.status(400).send(e);
         console.log(`Sent a transaction, id: ${trans.id} `.cyan);
         broadcart({type:MSG_TYPES.RESPONSE_TRANSACTION,data:[trans]});
         res.send(trans);
-      }catch(e){
-        res.status(400).send(e.message);
-      }
+      });
     })
   })
   //get address
@@ -135,7 +133,9 @@ const initHttp = function(PORT){
   //get balance
   app.get("/balance",(req,res)=>{
     process.nextTick(()=>{
-      res.send({balance:getBalance(req.query.address)});
+      getBalance((e,balance)=>{
+        res.send({balance:balance});
+      })
     })
   })
   //get unSpentTxOuts
@@ -153,15 +153,40 @@ const initHttp = function(PORT){
   app.get("/sentTransactions",(req,res)=>{
     let pool = Transaction.getTransactionPool();
     let sender = Wallet.getAddress();
-    pool = pool.filter((tr)=>tr.txIns.find((txIn)=>Transaction.getUnSpentTxOutById(getUnSpentTxOuts(),txIn.txOutId,txIn.txOutIndex).address===sender));
 
-    res.send(pool);
+    let sent = pool.map((tr)=>{
+      let from = Transaction.getUnSpentTxOutById(getUnSpentTxOuts(),tr.txIns[0].txOutId,tr.txIns[0].txOutIndex).address;
+      let to = tr.txOuts.find((txOut)=>txOut.address!==from).address;
+      return {
+        id:tr.id,
+        from:from,
+        to:to,
+        amount:tr.txOuts.filter((txOut)=>txOut.address!==from).map((txOut)=>txOut.amount).reduce((a,b)=>a+b,0),
+        date:tr.date
+
+      }
+    }).filter((tr)=>tr.from===sender);
+
+    res.send(sent);
   })
   app.get("/receivedTransactions",(req,res)=>{
     let pool = Transaction.getTransactionPool();
     let receiver = Wallet.getAddress();
-    pool = pool.filter((tr)=>tr.txOuts.find((txOut)=>txOut.address===receiver));
-    res.send(pool);
+
+    async.filter(pool,(tr,callback)=>{
+      callback(null,tr.txOuts.find((txOut)=>txOut.address===receiver));
+    },(e,trs)=>{
+      let received = trs.map((tr)=>{
+        return {
+          id:tr.id,
+          from:Transaction.getUnSpentTxOutById(getUnSpentTxOuts(),tr.txIns[0].txOutId,tr.txIns[0].txOutIndex).address,
+          to:receiver,
+          amount:tr.txOuts.filter((txOut)=>txOut.address===receiver).map((txOut)=>txOut.amount).reduce((a,b)=>a+b,0),
+          date:tr.date
+        }
+      }).filter((tr)=>tr.from!==receiver)
+      res.send(received);
+    })
   })
   //
   app.get("/transactionPool/:id",(req,res)=>{
@@ -249,24 +274,19 @@ const initConnection = function(ws){
         break;
       case MSG_TYPES.RESPONSE_TRANSACTION:
         if(message.data){
-          process.nextTick(()=>{
-            //console.log("Response transaction from",ws.url)
-            async.map(message.data,(trans,callback)=>{
-              try{
-                addTransactionPool(trans);
-                if(message.data.length===1){
-                  console.log(`Added new transaction to pool, id: ${trans.id}`.magenta);
-                }else{
-                  console.log(`Added transaction to pool, id: ${trans.id.grey}`.grey);
-                }
-
+          async.map(message.data,(trans,callback)=>{
+            addTransactionPoolAsync(trans,(e,rs)=>{
+              if(e){
+                console.log(e.red);
+                return callback();
+              }
+              if(rs){
+                console.log(`Added a transaction to pool, id: ${trans.id}`.magenta);
                 broadcart({type:MSG_TYPES.RESPONSE_TRANSACTION,data:[trans]});
-              }catch(e){
-                if(e.message) console.error(e.message);
               }
               callback();
-            },(err,rs)=>{
-            })
+            });
+          },(err,rs)=>{
           })
         }
         break;
@@ -305,10 +325,10 @@ const connect2Peers = function(peers){
           setTimeout(()=>{
             console.log("query transaction pool".grey)
             broadcart({type:MSG_TYPES.QUERY_ALL_TRANSACTION_POOL});
-          },3000)
+          },1*60*1000)
         })
         ws.on("error",(err)=>{
-          console.error(`Can't connect to peer. Error: ${err.message.red}, peer: ${peer}`.red);
+          console.error(`Can not connect to peer. Error: ${err.message.red}, peer: ${peer}`.red);
           console.error("Try connect after 30s".red);
           if(sockets.indexOf(ws)>=0){
             sockets.splice(sockets.indexOf(ws), 1);
