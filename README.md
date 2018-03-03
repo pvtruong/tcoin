@@ -1,5 +1,5 @@
 # Tiny Coin
-a cryptocurrency use NodeJS
+a cryptocurrency using NodeJS
 ## Install
   * Install newest NodeJS. [Download](https://nodejs.org)
   * Open CMD (on Windows) or terminal (on Linux, MacOS):
