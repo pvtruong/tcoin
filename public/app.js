@@ -7,21 +7,21 @@ app.component("wallet",{
       $http.get("/balance").then(function(res){
         $ctrl.balance = res.data.balance;
       },function(erre){
-        alert("Can't get balance in your wallet")
+        //alert("Can't get balance in your wallet")
       });
     }
     $ctrl.getMyAddress = function(){
       $http.get("/myAddress").then(function(res){
         $ctrl.myAddress = res.data;
       },function(error){
-        alert("Can't get your address")
+        //alert("Can't get your address")
       });
     }
     $ctrl.getPrivate = function(){
       $http.get("/privateKey").then(function(res){
         $ctrl.privateKey = res.data;
       },function(error){
-        alert("Can't get your private key")
+        //alert("Can't get your private key")
       });
     }
     $ctrl.replaceWallet = function(privateKey){

@@ -321,11 +321,13 @@ const connect2Peers = function(peers){
           console.log(`Added the peer: ${peer}`);
           //query lastest block
           send(ws,{type:MSG_TYPES.QUERY_LASTEST});
-          //broadcart transaction pool
-          setTimeout(()=>{
-            console.log("query transaction pool".grey)
-            broadcart({type:MSG_TYPES.QUERY_ALL_TRANSACTION_POOL});
-          },1*60*1000)
+          //broadcart query transaction pool when reconnecting to peer
+          if(Block.getBlockChain().length>1){
+            setTimeout(()=>{
+              console.log("Query transaction pool after the program reconnected to the peer".grey)
+              broadcart({type:MSG_TYPES.QUERY_ALL_TRANSACTION_POOL});
+            },500);
+          }
         })
         ws.on("error",(err)=>{
           console.error(`Can not connect to peer. Error: ${err.message.red}, peer: ${peer}`.red);

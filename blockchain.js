@@ -1,5 +1,5 @@
 const cryptoJs = require("crypto-js");
-const {Transaction} = require("./transaction");
+const {Transaction,UnSpentTxOut} = require("./transaction");
 const {Wallet} = require("./wallet");
 const _ = require("underscore");
 const async =require("async");
@@ -219,18 +219,38 @@ class Block{
           .reduce((a, b) => a + b);
   }
   static replaceBlockChain(newBlockChain){
-    console.log("checking new blockchain...".magenta);
-    if(Block.isValidBlockChain(newBlockChain) && Block.getAccumulatedDifficulty(newBlockChain)> Block.getAccumulatedDifficulty(blockchain)){
-      //replace blockchain
-      blockchain = newBlockChain;
-      //update unSpentTxOuts
-      unSpentTxOuts =[];
-      for(let block of newBlockChain){
-        unSpentTxOuts = Transaction.updateUnSpentTxOuts(block.data,unSpentTxOuts);
+    console.log("checking the received blockchain...".magenta);
+    if(Block.isValidBlockChain(newBlockChain)){
+      console.error("Checking the Accumulated Difficulty".magenta);
+      if(Block.getAccumulatedDifficulty(newBlockChain)> Block.getAccumulatedDifficulty(blockchain)){
+        //replace blockchain
+        blockchain = newBlockChain;
+        //update unSpentTxOuts
+        console.error("Updating unSpentTxOuts".magenta);
+        unSpentTxOuts = newBlockChain.map((block)=>{
+          return block.data.map((trans)=>{
+            return trans.txOuts.map((txOut,index)=>{
+              return new UnSpentTxOut(trans.id,index,txOut.amount,txOut.address);
+            });
+          }).reduce((a,b)=>a.concat(b),[]);
+        }).reduce((a,b)=>a.concat(b),[]);
+
+        let consumedUnSpentTxOuts = newBlockChain.map((block)=>{
+          return block.data.map((trans)=>{
+            return trans.txIns.filter((txIn)=>txIn.txOutId).map((txIn,index)=>{
+              return new UnSpentTxOut(txIn.txOutId,txIn.txOutIndex,0,'');
+            });
+          }).reduce((a,b)=>a.concat(b),[]);
+        }).reduce((a,b)=>a.concat(b),[]);
+        if(consumedUnSpentTxOuts.length>0){
+          unSpentTxOuts = unSpentTxOuts.filter((unSpent)=>!consumedUnSpentTxOuts.find((consumed)=>consumed.txOutId===unSpent.txOutId && consumed.txOutIndex===unSpent.txOutIndex));
+        }
+        //result
+        return true;
+      }else{
+        console.error("The Accumulated Difficulty is invalid".red);
       }
-      //update transactionPool
-      Transaction.updateTransactionPool(unSpentTxOuts);
-      return true;
+
     }else{
       console.error("Received Blockchain is invalid".red);
       return false;
