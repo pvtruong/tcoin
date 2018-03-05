@@ -5,6 +5,7 @@ const {Wallet}= require("./wallet");
 const {hexToBinary,round} = require("./utils");
 const color = require("colors");
 const COINBASE_AMOUNT = 15;
+const MAX_TxIn_EACH_TRANS = 3000;
 let transactionPool =[];
 class UnSpentTxOut{
   constructor(txOutId,txOutIndex,amount,address){
@@ -127,21 +128,19 @@ class Transaction{
     Transaction.getUnSpentTxOutByIdAsync(unSpentTxOuts,txIn.txOutId,txIn.txOutIndex,(e,referenceTxOut)=>{
       if(e) return callback(e);
       if(!referenceTxOut){
-        console.log("Reference TxOut not found".red,txIn.txOutId,txIn.txOutIndex);
-        return callback(null,false);
+        return callback("Reference TxOut not found",false);
       }
 
       if(!Wallet.verifySignature(referenceTxOut.address,transaction.id,txIn.signature)){
-        console.log("Invalid TxIn signature".red);
-        return callback(null,false);
+        return callback("Invalid TxIn signature",false);
       }
 
       return callback(null,true);
     });
   }
   static isValidTransactionStructure(trans){
-      return _.isArray(trans.txIns) && trans.txIns.length<15000
-          && _.isArray(trans.txOuts) && trans.txOuts.length<3
+      return _.isArray(trans.txIns) && trans.txIns.length<MAX_TxIn_EACH_TRANS && trans.txIns.length>0
+          && _.isArray(trans.txOuts) && trans.txOuts.length<3 && trans.txOuts.length>0
           && _.isString(trans.id)
           && (!trans.timestamp || _.isNumber(trans.timestamp))
           && (!trans.message || (_.isString(trans.message) && trans.message.length<512))
@@ -149,7 +148,7 @@ class Transaction{
   static validTransaction(trans,unSpentTxOuts){
     if(!trans) return false;
     if(!Transaction.isValidTransactionStructure(trans)){
-      console.log("Transaction structure is invalid".red);
+      console.log(`Transaction structure is invalid: ${trans.id}`.red);
       return false;
     }
     //valid id
@@ -206,12 +205,8 @@ class Transaction{
               callback(e,rs);
             })
           },(e,rs)=>{
-            if(e || !rs){
-              console.log(e||"Some of TxIns are invalid in transaction".red);
-              return callback(e,rs);
-            }
+            if(e) return callback(e,rs);
             //check total amount of txIns and txOuts
-            //console.log("Check total amount of txIns and txOuts ...");
             async.map(trans.txIns,(txIn,callback)=>{
               Transaction.getUnSpentTxOutByIdAsync(unSpentTxOuts_obj,txIn.txOutId,txIn.txOutIndex,(e,unSpent)=>{
                 if(e||!unSpent) return callback(e||"Not find UnSpentTxOut with id " + txIn.txOutId);
@@ -441,7 +436,8 @@ class Transaction{
           break;
         }
       }
-      if(_amount<amount) return callback("Not enough unspent TxOut");
+      if(_amount<amount) return callback("Not enough coins for this transaction");
+      if(unSpents.length>MAX_TxIn_EACH_TRANS) return callback(`Number TxIn is too large. Maximum to ${MAX_TxIn_EACH_TRANS}`);
 
       //create txIns and txOuts
       let txIns =[],txOuts = [];

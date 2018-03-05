@@ -17,25 +17,30 @@ const MSG_TYPES ={
 let config = JSON.parse(fs.readFileSync(__dirname + "/config.json",'utf8'));
 
 let sockets =[];
-let isMine;
+let isMine,newIndex;
 let mineBlock = ()=>{
   if(!isMine) return;
   if(sockets.filter((s)=>s.url).length===0){
     console.log("Waiting for reconnecting to peers".blue)
     setTimeout(()=>{
         mineBlock();
-    },(config.time_reconnect_peer||3000)*2);
+    },(config.time_reconnect_peer||30000)*2);
+    return;
+  }
+  if(newIndex && newIndex===Block.getLastestBlock().index+1){
+    setTimeout(()=>{
+        mineBlock();
+    },500);
     return;
   }
   try{
     Block.createNextBlock((error,newBlock)=>{
       if(newBlock){
+        newIndex = newBlock.index;
         if(sockets.filter((s)=>s.url).length>0 &&  Block.isValidNewBlock(newBlock)){
           console.log(`New Block is sent, index: ${newBlock.index}, hash: ${newBlock.hash}`.cyan);
           broadcart({type:MSG_TYPES.RESPONSE_BLOCKCHAIN,data:[newBlock]});
-          setTimeout(()=>{
-              mineBlock();
-          },500);
+          mineBlock();
         }else{
           console.error("New Block is not valid".red);
           mineBlock();
@@ -294,38 +299,29 @@ const initConnection = function(ws){
         //console.log("query transaction pool by",ws.url)
         process.nextTick(()=>{
           let trans = Transaction.getTransactionPool();
-          /*async.map(trans,(tr,cb)=>{
+          async.map(trans,(tr,cb)=>{
             broadcart({type:MSG_TYPES.RESPONSE_TRANSACTION,data:[tr]});
+            cb();
           },(e,rs)=>{
-          })*/
-          broadcart({type:MSG_TYPES.RESPONSE_TRANSACTION,data:trans});
+          })
         })
         break;
       case MSG_TYPES.RESPONSE_TRANSACTION:
         if(message.data){
-          if(message.data.length===1){
-            console.log(`Received a transaction. Checking...`.blue);
-          }else{
-            console.log(`Processing transaction pool...`.blue);
-          }
           async.map(message.data,(trans,callback)=>{
             addTransactionPoolAsync(trans,(e,rs)=>{
               if(e){
                 console.log(e.red);
+                console.log(`Transaction is invalid: ${trans.id}`.red);
                 return callback();
               }
               if(rs){
-                if(message.data.length===1){
-                  console.log(`Added a transaction to pool (${trans.txIns.length} txIns), id: ${trans.id}`.green);
-                }
+                console.log(`Added a transaction to pool (${trans.txIns.length} txIns), id: ${trans.id}`.grey);
                 broadcart({type:MSG_TYPES.RESPONSE_TRANSACTION,data:[trans]});
               }
               callback();
             });
           },(err,rs)=>{
-            if(message.data.length>1){
-              console.log(`Finished to process the transaction pool`.grey);
-            }
           })
         }
         break;
