@@ -50,7 +50,7 @@ class Transaction{
   constructor(txIns,txOuts){
     this.txIns = txIns;
     this.txOuts = txOuts;
-    this.timestamp = new Date().getTime();
+    //this.timestamp = new Date().getTime();
     this.id = this.getTransactionId();
 
   }
