@@ -98,7 +98,7 @@ class Block{
     //valid timestamp
     let currentTime = new Date().getTime();
     if (!( preBlock.timestamp - 60*1000 < block.timestamp && block.timestamp - 60*1000 < currentTime)){
-      console.error("timestamp is invalid".red);
+      console.error("Timestamp is invalid".red);
       return false;
     }
     //valid DIFFICULTY_ADJUSTMENT_INTERVAL
@@ -110,7 +110,7 @@ class Block{
     //valid hash
     let hash = Block.calculateHashForBlock(block);
     if(hash!==block.hash){
-      console.error("hash of block is not valid".red);
+      console.error("Hash of block is not valid".red);
       return false;
     }
     //valid basecoin transactions
@@ -219,14 +219,14 @@ class Block{
           .reduce((a, b) => a + b);
   }
   static replaceBlockChain(newBlockChain){
-    console.log("checking the received blockchain...".magenta);
+    console.log("Checking the received blockchain...".magenta);
     if(Block.isValidBlockChain(newBlockChain)){
-      console.error("Checking the Accumulated Difficulty".magenta);
+      console.error("Checking the Accumulated Difficulty...".magenta);
       if(Block.getAccumulatedDifficulty(newBlockChain)> Block.getAccumulatedDifficulty(blockchain)){
         //replace blockchain
         blockchain = newBlockChain;
         //update unSpentTxOuts
-        console.error("Updating unSpentTxOuts".magenta);
+        console.error("Updating unSpentTxOuts...".magenta);
         unSpentTxOuts = newBlockChain.map((block)=>{
           return block.data.map((trans)=>{
             return trans.txOuts.map((txOut,index)=>{
@@ -257,16 +257,20 @@ class Block{
     }
   }
 }
-const genesisTransaction = Transaction.createCoinBaseTransaction("0416d0eb8fbfd8941cba1917c0e0311fcb40880e0679bcbb023ce165302a524b2d85bb2f93acf9d1be476c6b61d6908e8e60b7498a3707b284dda9276b639439e8",0);
-const genesisBlock = Block.fromJson({
-  index:0,
-  timestamp:1519439637499,
-  hash:Block.calculateHash(0,"",1519439637499,[genesisTransaction],0,0),
-  preHash:"",
-  data:[genesisTransaction],
-  difficulty:0,
-  nonce:0
-})
+const genesisBlock={
+  "index":0,
+  "preHash":"",
+  "timestamp":1519439637499,
+  "data":[
+    {
+      "txIns":[{"txOutId":"","txOutIndex":0,"signature":""}],
+      "txOuts":[{"address":"0416d0eb8fbfd8941cba1917c0e0311fcb40880e0679bcbb023ce165302a524b2d85bb2f93acf9d1be476c6b61d6908e8e60b7498a3707b284dda9276b639439e8","amount":15}
+    ],
+  "id":"41cc40a81ee2b4cc19fb9901271e5a297b48e5ee8db7e6a4b4dec9fac5d32e8b"}],
+  "hash":"03a245008d2c93aa440076694cdddadb9097ed3c1dfc41405b6f51a999e54029",
+  "difficulty":0,
+  "nonce":0
+}
 blockchain.push(genesisBlock);
 unSpentTxOuts = Transaction.updateUnSpentTxOuts(genesisBlock.data,unSpentTxOuts);
 const addTransactionPool =(trans)=>{

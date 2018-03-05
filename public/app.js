@@ -52,7 +52,7 @@ app.component("wallet",{
     $ctrl.getBalance();
     var ref = $interval(function(){
         $ctrl.getBalance();
-    },60*1000);
+    },5*60*1000);
     $scope.$on('$destroy', function() {
       $interval.cancel(ref);
     });
@@ -130,14 +130,26 @@ app.component("mineBlock",{
     $ctrl.addPeer = function(peer){
       $ctrl.peerToAdd ="";
       $http.post("/addPeer",{peer:peer}).then(function(res){
-          alert("A peer was added");
           $timeout(function(){
             $ctrl.getPeers()
-          },500)
+          },100)
 
       },function(error){
-          alert("Error:" + error.data);
+          alert("Error: " + error.data);
       })
+    }
+    $ctrl.removePeer = function(peer){
+      if(confirm("Do you want to remove this peer?")){
+        $http.post("/removePeer",{peer:peer}).then(function(res){
+            $timeout(function(){
+              $ctrl.getPeers()
+            },300)
+
+        },function(error){
+            alert("Error: " + error.data);
+        })
+      }
+
     }
     $http.get("/mineStatus").then(function(res){
       $ctrl.running = res.data.is_mining;

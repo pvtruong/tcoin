@@ -13,8 +13,11 @@
           <div>
             <b>From: </b>{{trans.from}}
           </div>
-          <div>
+          <div ng-if="trans.date">
             <b>Date: </b>{{trans.date|date}}
+          </div>
+          <div ng-if="trans.message">
+            <b>Message: </b>{{trans.message}}
           </div>
           <div>
             <b>Amount: </b>{{trans.amount}}

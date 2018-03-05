@@ -6,6 +6,7 @@ const {Transaction} = require("./transaction");
 const async = require("async");
 const WebSocket = require("ws");
 const color = require("colors");
+const fs = require("fs");
 const MSG_TYPES ={
   QUERY_LASTEST:0,
   QUERY_ALL:1,
@@ -13,6 +14,8 @@ const MSG_TYPES ={
   QUERY_ALL_TRANSACTION_POOL:3,
   RESPONSE_TRANSACTION:4
 }
+let config = JSON.parse(fs.readFileSync(__dirname + "/config.json",'utf8'));
+
 let sockets =[];
 let isMine;
 let mineBlock = ()=>{
@@ -21,7 +24,7 @@ let mineBlock = ()=>{
     console.log("Waiting for reconnecting to peers".blue)
     setTimeout(()=>{
         mineBlock();
-    },1*60*1000);
+    },(config.time_reconnect_peer||3000)*2);
     return;
   }
   try{
@@ -88,16 +91,41 @@ const initHttp = function(PORT){
   //add peer
   app.post("/addPeer",(req,res)=>{
     if(req.body.peer){
-      if(!sockets.find((s)=>s.url===req.body.peer)){
-        connect2Peers([req.body.peer]);
-        res.send("Peer '" + req.body.peer + "' is added");
+      if(!config.peers.find((peer)=>peer===req.body.peer)){
+        connect2Peer(req.body.peer,(e,ws)=>{
+          if(e) return res.status(400).send(e);
+          //Save peer
+          config.peers.push(req.body.peer);
+          fs.writeFileSync(__dirname + "/config.json",JSON.stringify(config));
+          //query transation pool
+          setTimeout(()=>{
+            console.log("Query transaction pool".grey)
+            broadcart({type:MSG_TYPES.QUERY_ALL_TRANSACTION_POOL});
+          },10000);
+          //
+          res.send("Peer '" + req.body.peer + "' is added");
+        });
       }else{
-        res.status(400).send("This peer already exists")
+        res.status(400).send("This peer already exists");
       }
-      return;
+
+    }else{
+      res.status(400).send("Nothing is added");
     }
-    //console.log("peer data",req.body);
-    res.status(400).send("Nothing peer is added");
+
+  })
+  app.post("/removePeer",(req,res)=>{
+    if(req.body.peer){
+      if(config.peers.length<2) return res.status(400).send("Can't remove all peers");
+      config.peers = config.peers.filter((p)=>p!==req.body.peer);
+      fs.writeFileSync(__dirname + "/config.json",JSON.stringify(config));
+      let ws = sockets.find((s)=>s.url===req.body.peer);
+      if(ws) ws.terminate();
+      res.send("Peer was removed");
+    }else{
+      res.status(400).send("Nothing is removed");
+    }
+
   })
   //spend
   app.post("/spend",(req,res)=>{
@@ -162,8 +190,8 @@ const initHttp = function(PORT){
         from:from,
         to:to,
         amount:tr.txOuts.filter((txOut)=>txOut.address!==from).map((txOut)=>txOut.amount).reduce((a,b)=>a+b,0),
-        date:tr.date
-
+        date:tr.timestamp?new Date(tr.timestamp):null,
+        message:tr.message
       }
     }).filter((tr)=>tr.from===sender);
 
@@ -182,7 +210,8 @@ const initHttp = function(PORT){
           from:Transaction.getUnSpentTxOutById(getUnSpentTxOuts(),tr.txIns[0].txOutId,tr.txIns[0].txOutIndex).address,
           to:receiver,
           amount:tr.txOuts.filter((txOut)=>txOut.address===receiver).map((txOut)=>txOut.amount).reduce((a,b)=>a+b,0),
-          date:tr.date
+          date:tr.timestamp?new Date(tr.timestamp):null,
+          message:tr.message
         }
       }).filter((tr)=>tr.from!==receiver)
       res.send(received);
@@ -211,7 +240,6 @@ const initHttp = function(PORT){
     console.log(`Http server is running at port ${PORT}`.blue);
   })
 }
-
 const initConnection = function(ws){
   ws.on("message",(data)=>{
     let message = JSON.parse(data);
@@ -266,22 +294,24 @@ const initConnection = function(ws){
         //console.log("query transaction pool by",ws.url)
         process.nextTick(()=>{
           let trans = Transaction.getTransactionPool();
-          async.map(trans,(tr,cb)=>{
+          /*async.map(trans,(tr,cb)=>{
             broadcart({type:MSG_TYPES.RESPONSE_TRANSACTION,data:[tr]});
           },(e,rs)=>{
-          })
+          })*/
+          broadcart({type:MSG_TYPES.RESPONSE_TRANSACTION,data:trans});
         })
         break;
       case MSG_TYPES.RESPONSE_TRANSACTION:
         if(message.data){
           async.map(message.data,(trans,callback)=>{
+            console.log(`Received a transaction (${trans.txIns.length} txIns). Checking...`);
             addTransactionPoolAsync(trans,(e,rs)=>{
               if(e){
                 console.log(e.red);
                 return callback();
               }
               if(rs){
-                console.log(`Added a transaction to pool, id: ${trans.id}`.magenta);
+                console.log(`Added a transaction to pool, id: ${trans.id}`.grey);
                 broadcart({type:MSG_TYPES.RESPONSE_TRANSACTION,data:[trans]});
               }
               callback();
@@ -304,55 +334,66 @@ const initP2P = function(P2P_PORT){
       console.error(`Connection failed: ${error.message}`.red);
     })
   });
-  //default connect to this peer
-  connect2Peers(["http://27.74.255.132:3001"]);
-  //connect2Peers(["http://localhost:4001"]);
-  connect2Peers(["http://120.72.99.75:5001"]);
+  if(config.peers){
+    connect2Peers(config.peers);
+  }
 }
 const connect2Peers = function(peers){
-  peers.forEach((peer)=>{
-    if(peer){
-      if(!sockets.find((s)=>s.url===peer)){
-        console.log(`connecting to the peer: ${peer}`.grey);
-        let ws = new WebSocket(peer);
-        ws.on("open",()=>{
-          sockets.push(ws);
-          initConnection(ws);
-          console.log(`Added the peer: ${peer}`);
-          //query lastest block
-          send(ws,{type:MSG_TYPES.QUERY_LASTEST});
-          //broadcart query transaction pool when reconnecting to peer
-          if(Block.getBlockChain().length>1){
-            setTimeout(()=>{
-              console.log("Query transaction pool after the program reconnected to the peer".grey)
-              broadcart({type:MSG_TYPES.QUERY_ALL_TRANSACTION_POOL});
-            },500);
-          }
-        })
-        ws.on("error",(err)=>{
-          console.error(`Can not connect to peer. Error: ${err.message.red}, peer: ${peer}`.red);
-          console.error("Try connect after 30s".red);
-          if(sockets.indexOf(ws)>=0){
-            sockets.splice(sockets.indexOf(ws), 1);
-          }
+  peers.map((peer)=>{
+    connect2Peer(peer,(e,ws)=>{
+      //do nothing
+    })
+  })
+}
+const connect2Peer = function(peer,callback){
+    if(!sockets.find((s)=>s.url===peer)){
+      console.log(`connecting to the peer: ${peer}`.grey);
+      let ws = new WebSocket(peer);
+      ws.on("open",()=>{
+        sockets.push(ws);
+        initConnection(ws);
+        console.log(`Added the peer: ${peer}`);
+        //query lastest block
+        send(ws,{type:MSG_TYPES.QUERY_LASTEST});
+        if(callback){
+          callback(null,ws);
+          callback = null;
+        }
+      });
+      ws.on("error",(err)=>{
+        console.error(`Can not connect to peer. Error: ${err.message.red}, peer: ${peer}`.red);
+        if(sockets.indexOf(ws)>=0){
+          sockets.splice(sockets.indexOf(ws), 1);
+        }
+        if(config.peers.find((p)=>p===peer)){
+          console.error(`Try connect after ${(config.time_reconnect_peer||30000)/1000} seconds`.red);
           setTimeout(function(){
-            connect2Peers([peer]);
-          },30*1000);
-        })
-        ws.on("close",()=>{
-          //console.error('Peer',ws.url, "was closed. Reconnect after 1m".red);
-          if(sockets.indexOf(ws)>=0){
-            sockets.splice(sockets.indexOf(ws), 1);
-          }
-          /*setTimeout(function(){
-            connect2Peers([peer]);
-          },1*60*1000);
-          */
-        })
+            connect2Peer(peer,(e,ws)=>{
+              if(e) return console.log(e.red);
+              setTimeout(()=>{
+                console.log("Query transaction pool after the program reconnected to the peer".grey);
+                broadcart({type:MSG_TYPES.QUERY_ALL_TRANSACTION_POOL});
+              },500);
+            });
+          },config.time_reconnect_peer||30000);
+        }
+        if(callback){
+          callback(err.message||"Can't connect to peer: " + peer);
+          callback = null;
+        }
+      });
+      ws.on("close",()=>{
+        if(sockets.indexOf(ws)>=0){
+          sockets.splice(sockets.indexOf(ws), 1);
+        }
+        console.error(`The peer ${peer} was closed`.grey);
+      });
+    }else{
+      if(callback){
+        callback("This peer exists");
+        callback = null;
       }
     }
-
-  })
 }
 const send = function(ws,message){
   if(ws.readyState === WebSocket.OPEN){
@@ -363,6 +404,12 @@ const broadcart = function(message){
   sockets.forEach((ws)=>send(ws,message));
 }
 const run =(http_port,p2p_port)=>{
+  if(!http_port || http_port===true) http_port = config.http_port;
+  if(!http_port || p2p_port===true) p2p_port = config.p2p_port;
+  if(http_port===p2p_port){
+    return console.error("http port must be different from  p2p port".red);
+  }
+
   initP2P(p2p_port||3001);
   initHttp(http_port||3000);
 }

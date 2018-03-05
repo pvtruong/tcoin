@@ -50,6 +50,7 @@ class Transaction{
   constructor(txIns,txOuts){
     this.txIns = txIns;
     this.txOuts = txOuts;
+    this.timestamp = new Date().getTime();
     this.id = this.getTransactionId();
 
   }
@@ -63,7 +64,9 @@ class Transaction{
     if(tx.txIns && tx.txOuts){
       let txInsContent = tx.txIns.map((txIn)=>{return txIn.txOutId+txIn.txOutIndex.toString()}).reduce((a,b)=>a+b,"");
       let txOutsContent = tx.txOuts.map(txOut=>txOut.address+txOut.amount.toString()).reduce((a,b)=>a+b,"");
-      return cryptoJs.SHA256(txInsContent + txOutsContent).toString();
+      let timestamp = tx.timestamp?tx.timestamp:'';
+      let message = tx.message?tx.message:'';
+      return cryptoJs.SHA256(txInsContent + txOutsContent + timestamp + message).toString();
     }else{
       return null;
     }
@@ -120,23 +123,28 @@ class Transaction{
   }
   static validTxInAsync(txIn,transaction,unSpentTxOuts,callback){
     if(!txIn) return callback(null,false);
+
     Transaction.getUnSpentTxOutByIdAsync(unSpentTxOuts,txIn.txOutId,txIn.txOutIndex,(e,referenceTxOut)=>{
       if(e) return callback(e);
       if(!referenceTxOut){
         console.log("Reference TxOut not found".red,txIn.txOutId,txIn.txOutIndex);
         return callback(null,false);
       }
+
       if(!Wallet.verifySignature(referenceTxOut.address,transaction.id,txIn.signature)){
         console.log("Invalid TxIn signature".red);
         return callback(null,false);
       }
+
       return callback(null,true);
     });
   }
   static isValidTransactionStructure(trans){
-      return _.isArray(trans.txIns)
-          && _.isArray(trans.txOuts)
+      return _.isArray(trans.txIns) && trans.txIns.length<15000
+          && _.isArray(trans.txOuts) && trans.txOuts.length<3
           && _.isString(trans.id)
+          && (!trans.timestamp || _.isNumber(trans.timestamp))
+          && (!trans.message || (_.isString(trans.message) && trans.message.length<512))
   }
   static validTransaction(trans,unSpentTxOuts){
     if(!trans) return false;
@@ -149,14 +157,12 @@ class Transaction{
       console.log("Id of transaction is invalid".red);
       return false;
     }
-
     //valid txIns
     if(!trans.txIns.map((txIn)=>Transaction.validTxIn(txIn,trans,unSpentTxOuts)).reduce((a,b)=>a && b,true)){
       console.log("Some of TxIns are invalid in transaction".red);
       return false;
     }
-
-   //check total amount of txIns and txOuts
+    //check total amount of txIns and txOuts
     let totalAmountOfTxIns = round(trans.txIns.map((txIn)=>Transaction.getUnSpentTxOutById(unSpentTxOuts,txIn.txOutId,txIn.txOutIndex).amount).reduce((a,b)=>a+b,0),5);
     let totalAmountOfTxOuts = round(trans.txOuts.map((t)=>t.amount).reduce((a,b)=>a+b,0),5);
     if(totalAmountOfTxIns!==totalAmountOfTxOuts){
@@ -167,45 +173,67 @@ class Transaction{
   }
   static validTransactionAsync(trans,unSpentTxOuts,callback){
     if(!trans) return callback(null,false);
-    if(!Transaction.isValidTransactionStructure(trans)){
-      console.log("Transaction structure is invalid".red);
-      return callback(null,false);
-    }
-    //valid id
-    if(trans.id!==Transaction.createTransactionId(trans)){
-      console.log("Id of transaction is invalid".red);
-      return callback(null,false);
-    }
-
-    //valid txIns
-    async.map(trans.txIns,(txIn,callback)=>{
-      Transaction.validTxInAsync(txIn,trans,unSpentTxOuts,(e,rs)=>{
-        callback(e,rs);
-      })
-    },(e,rs)=>{
-      if(e || !rs){
-        console.log(e||"Some of TxIns are invalid in transaction".red);
-        return callback(e,rs);
-      }
-      //check total amount of txIns and txOuts
-      async.map(trans.txIns,(txIn,callback)=>{
-        Transaction.getUnSpentTxOutByIdAsync(unSpentTxOuts,txIn.txOutId,txIn.txOutIndex,(e,unSpent)=>{
-          if(e||!unSpent) return callback(e||"Not find UnSpentTxOut with id " + txIn.txOutId);
-          callback(null,unSpent.amount);
-        });
-      },(e,amounts)=>{
-        if(e) return callback(e);
-        let totalAmountOfTxIns = round(amounts.reduce((a,b)=>a+b,0),5);
-        let totalAmountOfTxOuts = round(trans.txOuts.map((t)=>t.amount).reduce((a,b)=>a+b,0),5);
-
-        if(totalAmountOfTxIns!==totalAmountOfTxOuts){
-          console.log("Total amount of txIns <> total amount of txOuts".red,totalAmountOfTxIns,totalAmountOfTxOuts);
-          return callback(null,false);
+    async.parallel({
+      checkStructure:(callback)=>{
+        if(!Transaction.isValidTransactionStructure(trans)){
+          callback("Transaction structure is invalid");
+        }else{
+          callback();
         }
-        return callback(null,true);
-      })
+      },
+      checkId:(callback)=>{
+        //valid id
+        if(trans.id!==Transaction.createTransactionId(trans)){
+          callback("Id of transaction is invalid");
+        }else{
+          callback()
+        }
+      }
+    },(e,rs)=>{
+      if(e) return callback(e.red);
+      Transaction.getAllUnSpentTxOutsAsync(unSpentTxOuts,(e,unSpents)=>{
+        if(e){
+          callback(e);
+        }else{
+          let unSpentTxOuts_obj={};
+          unSpents.forEach((unSpent)=>{
+            unSpentTxOuts_obj[unSpent.txOutId + ":" + unSpent.txOutIndex] = unSpent;
+          })
+          //valid txIns
+          console.log("Check validation of txIns...");
+          async.map(trans.txIns,(txIn,callback)=>{
+            Transaction.validTxInAsync(txIn,trans,unSpentTxOuts_obj,(e,rs)=>{
+              callback(e,rs);
+            })
+          },(e,rs)=>{
+            if(e || !rs){
+              console.log(e||"Some of TxIns are invalid in transaction".red);
+              return callback(e,rs);
+            }
+            //check total amount of txIns and txOuts
+            console.log("Check total amount of txIns and txOuts ...");
+            async.map(trans.txIns,(txIn,callback)=>{
+              Transaction.getUnSpentTxOutByIdAsync(unSpentTxOuts_obj,txIn.txOutId,txIn.txOutIndex,(e,unSpent)=>{
+                if(e||!unSpent) return callback(e||"Not find UnSpentTxOut with id " + txIn.txOutId);
+                callback(null,unSpent.amount);
+              });
+            },(e,amounts)=>{
+              if(e) return callback(e);
+              let totalAmountOfTxIns = round(amounts.reduce((a,b)=>a+b,0),5);
+              let totalAmountOfTxOuts = round(trans.txOuts.map((t)=>t.amount).reduce((a,b)=>a+b,0),5);
 
-    });
+              if(totalAmountOfTxIns!==totalAmountOfTxOuts){
+                console.log("Total amount of txIns <> total amount of txOuts".red,totalAmountOfTxIns,totalAmountOfTxOuts);
+                return callback(null,false);
+              }
+              return callback(null,true);
+            })
+
+          });
+        }
+
+      });
+    })
   }
   static fromJson(obj){
     return new Transaction(obj.txIns,obj.txOuts)
@@ -218,7 +246,7 @@ class Transaction{
       })
     }).reduce((a,b)=>{
       return a.concat(b);
-    },[]).filter((nu)=>!_unSpentTxOuts.find((u)=>u.txOutId===nu.txOutId && u.txOutIndex===nu.txOutIndex));
+    },[]);//.filter((nu)=>!_unSpentTxOuts.find((u)=>u.txOutId===nu.txOutId && u.txOutIndex===nu.txOutIndex));
 
     let cunsumedUnSpenTxOuts = transactions.map(trans=>trans.txIns)
       .reduce((a,b)=>a.concat(b),[])
@@ -255,8 +283,10 @@ class Transaction{
     //check id transaction
     Transaction.validTransactionAsync(trans,unSpentTxOuts,(e,rs)=>{
       if(e||!rs) return callback(e||"This transaction is invalid");
+      console.log("Checking id of transaction again...");
       //recheck id
       if(!transactionPool.find((tr)=>tr.id===trans.id)){
+        console.log("Push to pool...");
         transactionPool.push(trans);
         callback(null,trans);
       }else{
@@ -308,16 +338,20 @@ class Transaction{
         callback(null,trans.txIns);
       },(e,rs)=>{
         if(e) return callback(e);
-        let txInsInPool = rs.reduce((a,b)=>a.concat(b),[]);
+        let txInsInPool={}
+        rs.reduce((a,b)=>a.concat(b),[]).forEach((tx)=>{
+          txInsInPool[tx.txOutId  + ":" + tx.txOutIndex] = 1;
+        })
         async.filter(allUnSpentTxOuts,(un,callback)=>{
           callback(null,un.address===address);
         },(e,uns)=>{
           if(e) return callback(e);
           async.filter(uns,(un,callback)=>{
-            callback(null,!txInsInPool.find((tx)=>un.txOutId==tx.txOutId && un.txOutIndex==tx.txOutIndex))
+            callback(null,!txInsInPool[un.txOutId  + ":" + un.txOutIndex]);
           },(e,unSpentTxOutsOfSender)=>{
             callback(e,unSpentTxOutsOfSender);
           });
+
         });
       });
     });
@@ -326,15 +360,20 @@ class Transaction{
     return Transaction.getAllUnSpentTxOuts(unSpentTxOuts).find((un)=>un.txOutId==id && un.txOutIndex==index);
   }
   static getUnSpentTxOutByIdAsync(unSpentTxOuts,id,index,callback){
-    Transaction.getAllUnSpentTxOutsAsync(unSpentTxOuts,(e,unSpents)=>{
-      let unSpent = unSpents.find((un)=>un.txOutId==id && un.txOutIndex==index);
-      if(e){
-        callback(e);
-      }else{
-        callback(null,unSpent);
-      }
+    if(!_.isObject(unSpentTxOuts)){
+      Transaction.getAllUnSpentTxOutsAsync(unSpentTxOuts,(e,unSpents)=>{
+        if(e){
+          callback(e);
+        }else{
+          let unSpent = unSpents.find((un)=>un.txOutId==id && un.txOutIndex==index);
+          callback(null,unSpent);
+        }
+      });
+    }else{
+      let unSpent = unSpentTxOuts[id + ":" + index];
+      callback(null,unSpent);
+    }
 
-    });
   }
   static createTransaction(unSpentTxOuts,address_receiver,amount){
     if(!Wallet.isValidAddress(address_receiver)){
@@ -372,11 +411,14 @@ class Transaction{
     //create transaction
     let trans = new Transaction(txIns,txOuts);
     //sign txins
-    trans.txIns = txIns.map((txIn,index)=>{
-      txIn.signature = Wallet.sign(trans,index,unSpentTxOutsOfSender);
-      return txIn;
-    })
-    trans.date = new Date();
+    try{
+      trans.txIns = txIns.map((txIn,index)=>{
+        txIn.signature = Wallet.signTxIn(trans,index,unSpentTxOutsOfSender);
+        return txIn;
+      })
+    }catch(e){
+      return callback(e.message);
+    }
     //
     return trans;
   }
@@ -419,13 +461,12 @@ class Transaction{
       //sign txins
       try{
         trans.txIns = txIns.map((txIn,index)=>{
-          txIn.signature = Wallet.sign(trans,index,unSpentTxOutsOfSender);
+          txIn.signature = Wallet.signTxIn(trans,index,unSpentTxOutsOfSender);
           return txIn;
         })
       }catch(e){
         return callback(e.message);
       }
-      trans.date = new Date();
       //
       callback(null,trans);
     });

@@ -2,7 +2,7 @@
 	"name": "tcoin",
 	"main": "app.js",
 	"description": "Tiny Coin",
-	"version": "1.0.16",
+	"version": "1.1.0",
 	"bin": {
 		"tcoin": "./app.js"
 	},
@@ -21,7 +21,10 @@
 	"homepage": "https://github.com/pvtruong/tcoin",
 	"keywords": [
 		"blockchain",
-		"coin","tiny","cryptocurrency","tiny-coin"
+		"coin",
+		"tiny",
+		"cryptocurrency",
+		"tiny-coin"
 	],
 	"dependencies": {
 		"async": "latest",
@@ -32,6 +35,7 @@
 		"elliptic": "latest",
 		"express": "latest",
 		"numeral": "latest",
+		"open-in-editor": "^2.2.0",
 		"request": "latest",
 		"underscore": "latest",
 		"ws": "^4.0.0"

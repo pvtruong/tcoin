@@ -21,9 +21,9 @@ class Wallet{
   static replaceWallet(data){
     if(data.privateKey){
       try{
-        let address = Wallet.getPublic(data.privateKey);
+        currentAddress = Wallet.getPublic(data.privateKey);
         fs.writeFileSync(PRIVATE_KEY,data.privateKey);
-        return address;
+        return currentAddress;
       }catch(e){
         throw new Error(e.message);
       }
@@ -37,24 +37,26 @@ class Wallet{
     return key.getPublic().encode('hex');
   }
   static getAddress(){
-    return Wallet.getPublic();
+    if(!currentAddress) currentAddress =  Wallet.getPublic();
+    return currentAddress;
   }
-  static sign(transaction,txInIndex,unSpentTxOuts){
-
+  static signTxIn(transaction,txInIndex,unSpentTxOuts){
     let dataToSign =transaction.id;
     let txIn = transaction.txIns[txInIndex];
     let unSpent = unSpentTxOuts.find((out)=>out.txOutId==txIn.txOutId && out.txOutIndex==txIn.txOutIndex);
     if(!unSpent) throw new Error("Don't sign this transaction. unSpentTxOut is invalid");
-
+    return Wallet.sign(dataToSign,unSpent.address);
+  }
+  static sign(dataToSign,address){
     let key = EC.keyFromPrivate(Wallet.getPrivate(),'hex');
-    if(unSpent.address!==key.getPublic().encode('hex')){
-      throw new Error("Don't sign this transaction. unSpentTxOut is invalid");
+    if(address!==key.getPublic().encode('hex')){
+      throw new Error("Don't sign. This address is invalid");
     }
     return toHexString(key.sign(dataToSign).toDER());
   }
-  static verifySignature(address,transactionId,signature){
+  static verifySignature(address,data,signature){
     let key = EC.keyFromPublic(address,'hex');
-    return key.verify(transactionId,signature);
+    return key.verify(data,signature);
   }
   static isValidAddress(address){
     if (address.length !== 130) {
