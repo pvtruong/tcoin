@@ -200,7 +200,7 @@ class Transaction{
             unSpentTxOuts_obj[unSpent.txOutId + ":" + unSpent.txOutIndex] = unSpent;
           })
           //valid txIns
-          console.log("Check validation of txIns...");
+          //console.log("Check validation of txIns...");
           async.map(trans.txIns,(txIn,callback)=>{
             Transaction.validTxInAsync(txIn,trans,unSpentTxOuts_obj,(e,rs)=>{
               callback(e,rs);
@@ -211,7 +211,7 @@ class Transaction{
               return callback(e,rs);
             }
             //check total amount of txIns and txOuts
-            console.log("Check total amount of txIns and txOuts ...");
+            //console.log("Check total amount of txIns and txOuts ...");
             async.map(trans.txIns,(txIn,callback)=>{
               Transaction.getUnSpentTxOutByIdAsync(unSpentTxOuts_obj,txIn.txOutId,txIn.txOutIndex,(e,unSpent)=>{
                 if(e||!unSpent) return callback(e||"Not find UnSpentTxOut with id " + txIn.txOutId);
@@ -283,10 +283,10 @@ class Transaction{
     //check id transaction
     Transaction.validTransactionAsync(trans,unSpentTxOuts,(e,rs)=>{
       if(e||!rs) return callback(e||"This transaction is invalid");
-      console.log("Checking id of transaction again...");
+      //console.log("Checking id of transaction again...");
       //recheck id
       if(!transactionPool.find((tr)=>tr.id===trans.id)){
-        console.log("Push to pool...");
+        //console.log("Push to pool...");
         transactionPool.push(trans);
         callback(null,trans);
       }else{

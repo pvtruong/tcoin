@@ -303,20 +303,29 @@ const initConnection = function(ws){
         break;
       case MSG_TYPES.RESPONSE_TRANSACTION:
         if(message.data){
+          if(message.data.length===1){
+            console.log(`Received a transaction. Checking...`.blue);
+          }else{
+            console.log(`Processing transaction pool...`.blue);
+          }
           async.map(message.data,(trans,callback)=>{
-            console.log(`Received a transaction (${trans.txIns.length} txIns). Checking...`);
             addTransactionPoolAsync(trans,(e,rs)=>{
               if(e){
                 console.log(e.red);
                 return callback();
               }
               if(rs){
-                console.log(`Added a transaction to pool, id: ${trans.id}`.grey);
+                if(message.data.length===1){
+                  console.log(`Added a transaction to pool (${trans.txIns.length} txIns), id: ${trans.id}`.green);
+                }
                 broadcart({type:MSG_TYPES.RESPONSE_TRANSACTION,data:[trans]});
               }
               callback();
             });
           },(err,rs)=>{
+            if(message.data.length>1){
+              console.log(`Finished to process the transaction pool`.grey);
+            }
           })
         }
         break;
@@ -401,7 +410,13 @@ const send = function(ws,message){
   }
 }
 const broadcart = function(message){
-  sockets.forEach((ws)=>send(ws,message));
+  async.map(sockets,(ws,callback)=>{
+    send(ws,message);
+    callback();
+  },(e,rs)=>{
+
+  })
+
 }
 const run =(http_port,p2p_port)=>{
   if(!http_port || http_port===true) http_port = config.http_port;
