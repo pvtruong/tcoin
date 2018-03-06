@@ -140,7 +140,7 @@ app.component("mineBlock",{
     }
     $ctrl.removePeer = function(peer){
       if(confirm("Do you want to remove this peer?")){
-        $http.post("/removePeer",{peer:peer}).then(function(res){
+        $http.post("/removePeer",{peer:peer.peer}).then(function(res){
             $timeout(function(){
               $ctrl.getPeers()
             },300)
@@ -157,13 +157,16 @@ app.component("mineBlock",{
     $ctrl.getPeers();
     $ctrl.countBlocks();
 
-    var ref = $interval(function () {
-      $ctrl.getPeers();
+    var refBlock = $interval(function () {
       $ctrl.countBlocks();
-    }, 60*1000);
+    }, 30*1000);
+    var refPeer = $interval(function () {
+      $ctrl.getPeers();
+    }, 1000);
 
     $scope.$on('$destroy', function() {
-      $interval.cancel(ref);
+      $interval.cancel(refBlock);
+      $interval.cancel(refPeer);
     });
   }
 })

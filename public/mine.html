@@ -28,9 +28,9 @@
 
   <ul style="margin-top:20px">
     <li ng-repeat="peer in $ctrl.peers track by $index">
-      <div class="float-left">{{peer}}</div>
+      <div class="float-left" title="{{peer.active?'Connected':'Not connect'}}" ng-style="{'color':(peer.active?'green':'silver')}">{{peer.peer}}</div>
       <div class="float-right">
-        <a href ng-click="$ctrl.removePeer(peer)" style='color:grey'>X</a>
+        <a href ng-click="$ctrl.removePeer(peer)" style='color:grey' title="remove this peer">x</a>
       </div>
     </li>
   </ul>

@@ -134,6 +134,16 @@ const initHttp = function(PORT){
     }
 
   })
+  //get peers
+  app.get("/peers",(req,res)=>{
+    let _peers = config.peers.map((peer)=>{
+      return {
+        peer:peer,
+        active:!(!sockets.find((s)=>s.url===peer))
+      }
+    })
+    res.send(_peers);
+  })
   //spend
   app.post("/spend",(req,res)=>{
     process.nextTick(()=>{
@@ -238,10 +248,6 @@ const initHttp = function(PORT){
       res.status(400).send(e.message);
     }
   })
-  //get peers
-  app.get("/peers",(req,res)=>{
-    res.send(sockets.map((s)=>s.url).filter((s)=>s));
-  })
   //listen
   app.listen(PORT,()=>{
     console.log(`Http server is running at port ${PORT}`.blue);
@@ -314,7 +320,7 @@ const initConnection = function(ws){
             addTransactionPoolAsync(trans,(e,rs)=>{
               if(e){
                 console.log(e.red);
-                console.log(`Transaction is invalid: ${trans.id}`.red);
+                console.log(`Transaction is invalid: ${trans.id}, peer: ${ws.url}`.red);
                 return callback();
               }
               if(rs){
@@ -408,13 +414,7 @@ const send = function(ws,message){
   }
 }
 const broadcart = function(message){
-  async.map(sockets,(ws,callback)=>{
-    send(ws,message);
-    callback();
-  },(e,rs)=>{
-
-  })
-
+  sockets.map((ws)=>send(ws,message));
 }
 const run =(http_port,p2p_port)=>{
   if(!http_port || http_port===true) http_port = config.http_port;
