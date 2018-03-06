@@ -40,7 +40,9 @@ let mineBlock = ()=>{
         if(sockets.filter((s)=>s.url).length>0 &&  Block.isValidNewBlock(newBlock)){
           console.log(`New Block is sent, index: ${newBlock.index}, hash: ${newBlock.hash}`.cyan);
           broadcart({type:MSG_TYPES.RESPONSE_BLOCKCHAIN,data:[newBlock]});
-          mineBlock();
+          setTimeout(()=>{
+              mineBlock();
+          },500);
         }else{
           console.error("New Block is not valid".red);
           mineBlock();
@@ -270,7 +272,7 @@ const initConnection = function(ws){
             if(receivedLastestBlock.preHash===currentLastestBlock.hash){
               if(Block.addBlockToChain(receivedLastestBlock)){
                 //new block
-                console.log(`Added a block to chain, index: ${receivedLastestBlock.index}, hash: ${receivedLastestBlock.hash}`.green);
+                console.log(`Added a block to chain, index: ${receivedLastestBlock.index}, hash: ${receivedLastestBlock.hash}, peer: ${ws.url}`.green);
                 broadcart({type:MSG_TYPES.RESPONSE_BLOCKCHAIN,data:[Block.getLastestBlock()]});
               }
             }else if(data.length===Block.getBlockChain().length){
@@ -316,7 +318,7 @@ const initConnection = function(ws){
                 return callback();
               }
               if(rs){
-                console.log(`Added a transaction to pool (${trans.txIns.length} txIns), id: ${trans.id}`.grey);
+                console.log(`Added a transaction to pool (${trans.txIns.length} txIns), id: ${trans.id}, peer: ${ws.url}`.grey);
                 broadcart({type:MSG_TYPES.RESPONSE_TRANSACTION,data:[trans]});
               }
               callback();
