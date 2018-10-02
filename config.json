@@ -1,1 +1,1 @@
-{"p2p_port":3001,"http_port":3000,"time_reconnect_peer":30000,"peers":["http://120.72.99.75:5001","http://27.74.255.132:3001","http://120.72.99.75:4001"]}
+{"p2p_port":5001,"http_port":5000,"time_reconnect_peer":30000,"peers":["http://112.78.4.51:5001"]}

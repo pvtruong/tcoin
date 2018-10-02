@@ -418,11 +418,10 @@ const broadcart = function(message){
 }
 const run =(http_port,p2p_port)=>{
   if(!http_port || http_port===true) http_port = config.http_port;
-  if(!http_port || p2p_port===true) p2p_port = config.p2p_port;
+  if(!p2p_port || p2p_port===true) p2p_port = config.p2p_port;
   if(http_port===p2p_port){
     return console.error("http port must be different from  p2p port".red);
   }
-
   initP2P(p2p_port||3001);
   initHttp(http_port||3000);
 }

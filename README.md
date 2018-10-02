@@ -9,6 +9,6 @@ a cryptocurrency using NodeJS
   * For more options, run command:
   `tcoin -h`
 ## Use:
-  Open link: [http://localhost:3000](http://localhost:3000)
+  Open link: [http://localhost:5000](http://localhost:5000)
 ## License
 MIT

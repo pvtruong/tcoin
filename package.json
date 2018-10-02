@@ -2,7 +2,7 @@
 	"name": "tcoin",
 	"main": "app.js",
 	"description": "TinyCoin",
-	"version": "1.1.9",
+	"version": "1.1.10",
 	"bin": {
 		"tcoin": "./app.js"
 	},
